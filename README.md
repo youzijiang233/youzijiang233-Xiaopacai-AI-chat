@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -22,7 +22,8 @@
 - **独立文件存储**：每个对话单独存储，性能更优
 
 ### 🎨 现代化界面
-- 简洁的深色主题，流畅的动画效果
+- **主题切换**：支持深色/亮色主题，自动保存偏好
+- **滚动位置记忆**：自动保存和恢复查看位置
 - Markdown 渲染和代码语法高亮（Highlight.js）
 - 流式输出，带打字光标指示器
 - 可折叠的设置面板
@@ -32,6 +33,7 @@
 - **多 API 支持**：OpenAI、DeepSeek 和自定义端点
 - **API 预设**：保存和切换不同的 API 配置
 - **生成参数**：精细调整 temperature、top-p、top-k、penalties 等
+- **增强的编辑体验**：自动调整高度、字符计数、快捷键支持（Ctrl+Enter 保存，Esc 取消）
 - **一键重置**：重置所有生成参数到默认值
 - **本地存储**：所有数据以 JSON 格式本地存储
 - **系统加密**：使用 Electron safeStorage 加密 API 密钥
@@ -136,10 +138,25 @@ xiaopacai-AI-chat/
 
 - [ ] 对话搜索功能
 - [ ] 导出对话为 Markdown/PDF
-- [ ] 自定义主题支持
 - [ ] 插件系统扩展功能
 - [ ] 多语言界面支持
 - [ ] 可选的云同步
+
+## 📝 版本历史
+
+### v1.2.0 (2025-02-21)
+- ✨ 新增主题切换功能（深色/亮色模式）
+- 💾 新增滚动位置记忆功能
+- ✏️ 优化消息编辑框体验（自动高度、字符计数、快捷键）
+- 🐛 修复多个潜在的内存泄漏问题
+- 🔒 移除硬编码的 API Key，提升安全性
+- 🎨 优化亮色模式的视觉效果
+- 🔧 添加 API 响应边界检查，提升稳定性
+
+### v1.1.0 (2025-02-XX)
+- 🌳 实现树状对话分支管理系统
+- 💬 优化消息发送和滚动体验
+- 📁 每个对话独立文件存储
 
 ## 🤝 贡献
 

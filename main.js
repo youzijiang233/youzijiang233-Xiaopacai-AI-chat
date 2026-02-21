@@ -115,6 +115,13 @@ ipcMain.handle('ensure-folder', async (event, folderName) => {
   }
 });
 
+// IPC 处理器：保存完成通知
+ipcMain.on('save-completed', () => {
+  if (mainWindow) {
+    mainWindow.destroy();
+  }
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -147,6 +154,14 @@ function createWindow() {
 
   // Remove default menu bar
   Menu.setApplicationMenu(null);
+
+  // 窗口关闭前通知渲染进程保存数据
+  mainWindow.on('close', (e) => {
+    if (mainWindow) {
+      e.preventDefault();
+      mainWindow.webContents.send('app-closing');
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
