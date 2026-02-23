@@ -16,6 +16,7 @@ data/conversations/*.json
 
 # Backup files
 *.backup
+backup/
 
 # OS files
 .DS_Store

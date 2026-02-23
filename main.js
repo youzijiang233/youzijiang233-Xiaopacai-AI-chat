@@ -144,7 +144,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     // icon: path.join(__dirname, 'assets/icon.ico'),  // Uncomment when icon is ready
-    title: 'AI Chat',
+    title: 'Xiaopacai AI Chat',
     show: false
   });
 

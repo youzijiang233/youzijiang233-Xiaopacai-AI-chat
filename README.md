@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.3.2-blue)
+![Version](https://img.shields.io/badge/version-1.3.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
