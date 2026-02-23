@@ -1610,8 +1610,20 @@ function resetGenerationParams() {
 }
 
 // ══ CONVERSATIONS ══
+// 对话列表缓存
+let convsCache = null;
+let convsCacheTime = 0;
+const CACHE_TTL = 5000; // 5秒缓存
+
 // 获取所有对话列表（从conversations文件夹读取所有对话文件）
-async function getConvs() {
+async function getConvs(forceRefresh = false) {
+  const now = Date.now();
+
+  // 使用缓存（如果未过期且不强制刷新）
+  if (!forceRefresh && convsCache && (now - convsCacheTime < CACHE_TTL)) {
+    return convsCache;
+  }
+
   if (isElectron) {
     // 确保conversations文件夹存在
     await window.electronAPI.ensureFolder(CONVERSATIONS_FOLDER);
@@ -1637,10 +1649,21 @@ async function getConvs() {
 
     // 按更新时间排序
     convs.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    // 更新缓存
+    convsCache = convs;
+    convsCacheTime = now;
+
     return convs;
   } else {
     // localStorage降级
-    return await getData('C') || [];
+    const convs = await getData('C') || [];
+
+    // 更新缓存
+    convsCache = convs;
+    convsCacheTime = now;
+
+    return convs;
   }
 }
 
@@ -1650,6 +1673,9 @@ async function saveConv(conv, updateTime = true) {
   if (updateTime) {
     conv.updatedAt = Date.now();
   }
+
+  // 清除缓存，因为数据已修改
+  convsCache = null;
 
   // 自动生成标题（仅在第一次且标题为"新对话"时）
   const oldTitle = conv.title;
@@ -1694,12 +1720,15 @@ async function saveConv(conv, updateTime = true) {
 
   // 如果更新了时间戳，重新渲染对话列表以更新顺序
   if (updateTime) {
-    renderConvList();
+    renderConvList(await getConvs(true)); // 强制刷新缓存
   }
 }
 
 // 删除单个对话文件
 async function deleteConvFile(conv) {
+  // 清除缓存，因为数据已修改
+  convsCache = null;
+
   if (isElectron) {
     const filename = getConvFileName(conv);
     await window.electronAPI.deleteFile(filename);
@@ -1744,7 +1773,7 @@ async function saveCurrentConv() {
 
   // 保存单个对话文件（不更新时间戳）
   await saveConv(conv, false);
-  renderConvList();
+  renderConvList(await getConvs(true)); // 强制刷新缓存
 }
 
 /**
@@ -1788,7 +1817,7 @@ async function newChat(saveCurrent = true) {
   await setData('A', id);
 
   renderMessages();
-  renderConvList();
+  renderConvList(await getConvs(true)); // 强制刷新缓存
   updateStats();
 }
 
@@ -1836,11 +1865,11 @@ async function deleteConv(id, e) {
   await deleteConvFile(conv);
 
   if (currentConvId === id) {
-    const remaining = await getConvs();
+    const remaining = await getConvs(true); // 强制刷新缓存
     if (remaining.length > 0) await loadConv(remaining[0].id);
     else await newChat(false);
   } else {
-    renderConvList();
+    renderConvList(await getConvs(true)); // 强制刷新缓存
   }
   showToast('已删除');
 }
@@ -1886,7 +1915,7 @@ function startRenameConv(e, id) {
         showToast('已重命名');
       }
 
-      renderConvList();
+      renderConvList(await getConvs(true)); // 强制刷新缓存
     };
 
     input.addEventListener('keydown', ev => {
@@ -1896,7 +1925,7 @@ function startRenameConv(e, id) {
       }
       if (ev.key === 'Escape') {
         saved = true;
-        renderConvList();
+        renderConvList(getConvs(true).then(convs => convs)); // 强制刷新缓存
       }
     });
     input.addEventListener('blur', finish);
@@ -1996,13 +2025,15 @@ async function duplicateConv(id, e) {
   // 保存新对话
   await saveConv(newConv);
 
-  renderConvList();
+  renderConvList(await getConvs(true)); // 强制刷新缓存
   showToast('已复制');
 }
 
-async function renderConvList() {
+async function renderConvList(convs = null) {
   const list = g('conv-list');
-  const convs = await getConvs();
+  if (!convs) {
+    convs = await getConvs();
+  }
   if (!convs.length) { list.innerHTML = '<div class="conv-empty">暂无历史对话</div>'; return; }
   list.innerHTML = convs.map(c => {
     const d = new Date(c.updatedAt);
@@ -2292,6 +2323,8 @@ async function sendMessage(retryText = null, isRetry = false) {
       const dec = new TextDecoder();
       let buf = '';
       let isFirstToken = true;  // 标记是否是第一个token
+      let rafId = null;
+      let needsUpdate = false;
 
       if (format === 'claude') {
         while (true) {
@@ -2312,11 +2345,29 @@ async function sendMessage(retryText = null, isRetry = false) {
                   isFirstToken = false;
                 }
                 fullText += chunk.delta.text;
-                contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
-                scrollToBottom();
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
               }
             } catch (e) { }
           }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
         }
       } else {
         while (true) {
@@ -2339,11 +2390,29 @@ async function sendMessage(retryText = null, isRetry = false) {
                   isFirstToken = false;
                 }
                 fullText += delta;
-                contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
-                scrollToBottom();
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
               }
             } catch (e) { }
           }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
         }
       }
       contentEl.innerHTML = renderMd(fullText);
@@ -2540,6 +2609,8 @@ async function sendMessageToTree(userText, aiMessageId) {
       const dec = new TextDecoder();
       let buf = '';
       let isFirstToken = true;  // 标记是否是第一个token
+      let rafId = null;
+      let needsUpdate = false;
 
       if (format === 'claude') {
         while (true) {
@@ -2560,11 +2631,29 @@ async function sendMessageToTree(userText, aiMessageId) {
                   isFirstToken = false;
                 }
                 fullText += chunk.delta.text;
-                contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
-                scrollToBottom();
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
               }
             } catch (e) { }
           }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
         }
       } else {
         while (true) {
@@ -2587,11 +2676,29 @@ async function sendMessageToTree(userText, aiMessageId) {
                   isFirstToken = false;
                 }
                 fullText += delta;
-                contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
-                scrollToBottom();
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
               }
             } catch (e) { }
           }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
         }
       }
     } else {
@@ -2666,9 +2773,9 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null) 
 
     branchManager = `
       <div class="branch-manager" data-node-id="${branchNode.id}">
-        <button class="branch-btn" onclick="switchBranch('${branchNode.id}', -1)" ${currentIndex === 0 ? 'disabled' : ''} title="上一个分支"><</button>
+        <button class="branch-btn" data-action="branch-prev" data-node-id="${branchNode.id}" ${currentIndex === 0 ? 'disabled' : ''} title="上一个分支"><</button>
         <span class="branch-indicator">${currentIndex + 1}/${totalBranches}</span>
-        <button class="branch-btn" onclick="switchBranch('${branchNode.id}', 1)" ${currentIndex === totalBranches - 1 ? 'disabled' : ''} title="下一个分支">></button>
+        <button class="branch-btn" data-action="branch-next" data-node-id="${branchNode.id}" ${currentIndex === totalBranches - 1 ? 'disabled' : ''} title="下一个分支">></button>
       </div>`;
   }
 
@@ -2678,16 +2785,16 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null) 
   const actions = isUser ? `
     <div class="bubble-actions">
       ${branchManager}
-      <button class="bubble-action-btn" title="重试" onclick="retryMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
-      <button class="bubble-action-btn" title="复制" onclick="copyMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-      <button class="bubble-action-btn" title="编辑" onclick="editMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="bubble-action-btn del" title="删除" onclick="deleteMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+      <button class="bubble-action-btn" data-action="retry" title="重试"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
+      <button class="bubble-action-btn" data-action="copy" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <button class="bubble-action-btn" data-action="edit" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="bubble-action-btn del" data-action="delete" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
     </div>` : `
     <div class="bubble-actions">
-      <button class="bubble-action-btn" title="重试" onclick="retryMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
-      <button class="bubble-action-btn" title="复制" onclick="copyMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-      <button class="bubble-action-btn" title="编辑" onclick="editMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="bubble-action-btn del" title="删除" onclick="deleteMessage(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+      <button class="bubble-action-btn" data-action="retry" title="重试"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
+      <button class="bubble-action-btn" data-action="copy" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <button class="bubble-action-btn" data-action="edit" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="bubble-action-btn del" data-action="delete" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
       ${branchManager}
     </div>`;
 
@@ -3540,32 +3647,64 @@ async function toggleOpt(key) {
   if (isElectron) {
     // Electron 环境：监听主进程发送的关闭事件
     window.electronAPI.onAppClosing(async () => {
-      if (scrollSaveInterval) clearInterval(scrollSaveInterval);
       await saveCurrentConv();
       window.electronAPI.saveCompleted();
     });
   } else {
     // 浏览器环境：使用 beforeunload
     window.addEventListener('beforeunload', async (e) => {
-      if (scrollSaveInterval) clearInterval(scrollSaveInterval);
       await saveCurrentConv();
     });
   }
 
   // 定期保存滚动位置（每5秒）
-  const scrollSaveInterval = setInterval(async () => {
-    if (currentConvId && !isGenerating) {
-      const messagesContainer = g('messages');
-      if (messagesContainer) {
-        const convs = await getConvs();
-        const conv = convs.find(c => c.id === currentConvId);
-        if (conv) {
-          conv.scrollPosition = messagesContainer.scrollTop;
-          await saveConv(conv, false);
-        }
+  // 滚动位置保存 - 使用防抖优化
+  let scrollSaveTimeout = null;
+  const messagesContainer = g('messages');
+
+  if (messagesContainer) {
+    messagesContainer.addEventListener('scroll', () => {
+      if (currentConvId && !isGenerating) {
+        // 清除之前的保存计划
+        clearTimeout(scrollSaveTimeout);
+
+        // 500ms 后保存（用户停止滚动后才保存）
+        scrollSaveTimeout = setTimeout(async () => {
+          const convs = await getConvs();
+          const conv = convs.find(c => c.id === currentConvId);
+          if (conv) {
+            conv.scrollPosition = messagesContainer.scrollTop;
+            await saveConv(conv, false);
+          }
+        }, 500);
       }
-    }
-  }, 5000);
+    });
+
+    // 事件委托：处理消息气泡上的所有操作
+    messagesContainer.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+
+      const action = target.dataset.action;
+      const row = target.closest('.message-row');
+
+      if (action === 'retry') {
+        retryMessage(target);
+      } else if (action === 'copy') {
+        copyMessage(target);
+      } else if (action === 'edit') {
+        editMessage(target);
+      } else if (action === 'delete') {
+        deleteMessage(target);
+      } else if (action === 'branch-prev') {
+        const nodeId = target.dataset.nodeId;
+        switchBranch(nodeId, -1);
+      } else if (action === 'branch-next') {
+        const nodeId = target.dataset.nodeId;
+        switchBranch(nodeId, 1);
+      }
+    });
+  }
 
   document.addEventListener('click', e => {
     const sel = g('preset-selector');
