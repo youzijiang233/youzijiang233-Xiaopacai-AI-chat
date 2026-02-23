@@ -30,5 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onAppClosing: (callback) => ipcRenderer.on('app-closing', callback),
 
   // 通知主进程保存完成
-  saveCompleted: () => ipcRenderer.send('save-completed')
+  saveCompleted: () => ipcRenderer.send('save-completed'),
+
+  // 设置缩放级别
+  setZoomLevel: (level) => ipcRenderer.invoke('set-zoom-level', level)
 });

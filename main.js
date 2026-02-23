@@ -122,6 +122,14 @@ ipcMain.on('save-completed', () => {
   }
 });
 
+// IPC 处理器：设置缩放级别
+ipcMain.handle('set-zoom-level', async (event, level) => {
+  if (mainWindow) {
+    mainWindow.webContents.setZoomFactor(level);
+  }
+  return { success: true };
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,

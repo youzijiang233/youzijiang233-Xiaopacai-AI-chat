@@ -108,6 +108,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .input{padding:7px 10px;height:33px;font-size:12px}
 .input:focus,.textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
 .textarea{padding:8px 10px;resize:vertical;min-height:70px;line-height:1.5;font-size:12px}
+.textarea::-webkit-scrollbar{width:8px}
+.textarea::-webkit-scrollbar-track{background:var(--bg4);border-radius:4px}
+.textarea::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+.textarea::-webkit-scrollbar-thumb:hover{background:var(--accent);opacity:0.8}
 .mono-input{font-family:'JetBrains Mono',monospace;font-size:10.5px}
 
 /* MODEL DROPDOWN */
@@ -245,6 +249,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .bubble-edit-btn.regen{background:var(--accent);color:#fff;border:1px solid var(--accent)}
 .bubble-edit-btn.regen:hover{background:var(--accent2);border-color:var(--accent2)}
 
+/* ZOOM INDICATOR */
+.zoom-indicator{position:fixed;top:20px;right:20px;background:var(--bg2);border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:10000;opacity:0;pointer-events:none;transition:opacity .2s}
+.zoom-indicator.show{opacity:1}
+
 /* Markdown */
 .bubble-content h1,.bubble-content h2,.bubble-content h3{color:var(--text);font-weight:600;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px}
 .bubble-content h1{font-size:17px}.bubble-content h2{font-size:15px}.bubble-content h3{font-size:14px;border:none}
@@ -375,6 +383,9 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
 </div>
 
 <div class="main">
+  <!-- 缩放提示 -->
+  <div class="zoom-indicator" id="zoom-indicator">100%</div>
+
   <!-- Icon Rail -->
   <div class="rail">
     <button class="rail-btn active" id="rail-settings" onclick="switchPanel('settings')" title="参数配置">
@@ -1147,6 +1158,65 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// 缩放功能：Ctrl + 滚轮
+let zoomLevel = 1;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.05;  // 改为 5%
+let zoomTimeout;
+
+function showZoomIndicator() {
+  const indicator = g('zoom-indicator');
+  indicator.textContent = Math.round(zoomLevel * 100) + '%';
+  indicator.classList.add('show');
+
+  // 清除之前的定时器
+  clearTimeout(zoomTimeout);
+
+  // 1.5秒后隐藏
+  zoomTimeout = setTimeout(() => {
+    indicator.classList.remove('show');
+  }, 1500);
+}
+
+async function applyZoom() {
+  if (isElectron) {
+    // 使用 Electron 原生缩放
+    await window.electronAPI.setZoomLevel(zoomLevel);
+    // 保存缩放等级
+    await saveSettings();
+  }
+}
+
+document.addEventListener('wheel', (e) => {
+  if (e.ctrlKey) {
+    e.preventDefault();
+
+    // 根据滚轮方向调整缩放
+    if (e.deltaY < 0) {
+      // 向上滚动，放大
+      zoomLevel = Math.min(MAX_ZOOM, zoomLevel + ZOOM_STEP);
+    } else {
+      // 向下滚动，缩小
+      zoomLevel = Math.max(MIN_ZOOM, zoomLevel - ZOOM_STEP);
+    }
+
+    // 应用缩放
+    applyZoom();
+    showZoomIndicator();
+  }
+}, { passive: false });
+
+// Ctrl + 0 重置缩放
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === '0') {
+    e.preventDefault();
+    zoomLevel = 1;
+    applyZoom();
+    showZoomIndicator();
+  }
+});
+
 
 async function addNewPreset() {
   const id = 'preset_' + Date.now();
@@ -1387,6 +1457,7 @@ async function saveSettings() {
     theme: document.documentElement.getAttribute('data-theme') || 'dark',
     activePanel,
     collapseStates: getCollapseStates(),
+    zoomLevel: zoomLevel,
   });
 }
 
@@ -1454,6 +1525,12 @@ async function loadSettings() {
   g('stream-toggle').classList.toggle('on', streamEnabled);
   g('md-toggle').classList.toggle('on', mdEnabled);
   g('hl-toggle').classList.toggle('on', hlEnabled);
+
+  // 加载缩放等级
+  if (s.zoomLevel !== undefined) {
+    zoomLevel = s.zoomLevel;
+    applyZoom();
+  }
 
   // 加载主题
   const theme = s.theme || 'dark';
