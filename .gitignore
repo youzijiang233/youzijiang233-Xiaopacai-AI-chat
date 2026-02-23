@@ -42,3 +42,6 @@ yarn-error.log*
 # Temporary files
 *.tmp
 *.temp
+
+# Model list (personal reference)
+supported_models.txt

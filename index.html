@@ -631,7 +631,7 @@ function findBranchNodeByParent(conv, parentId) {
   if (!conv || !conv.branchNodes) return null;
   for (const nodeId in conv.branchNodes) {
     const node = conv.branchNodes[nodeId];
-    if (node.parentId === parentId) {
+    if (node.parentMessageId === parentId) {
       return node;
     }
   }
@@ -724,8 +724,8 @@ function validateConversation(conv) {
       const node = conv.branchNodes[nodeId];
 
       // 检查父消息存在
-      if (!conv.messages[node.parentId]) {
-        errors.push(`BranchNode ${nodeId}: parent ${node.parentId} not found`);
+      if (!conv.messages[node.parentMessageId]) {
+        errors.push(`BranchNode ${nodeId}: parent ${node.parentMessageId} not found`);
       }
 
       // 检查分支消息存在
@@ -1524,7 +1524,7 @@ async function duplicateConv(id, e) {
     newBranchNodes[newNodeId] = {
       ...oldNode,
       id: newNodeId,
-      parentId: idMap[oldNode.parentId] || oldNode.parentId,
+      parentMessageId: idMap[oldNode.parentMessageId] || oldNode.parentMessageId,
       activeChildId: idMap[oldNode.activeChildId] || oldNode.activeChildId,
       branches: oldNode.branches.map(branch => ({
         ...branch,
@@ -1536,6 +1536,17 @@ async function duplicateConv(id, e) {
 
   newConv.messages = newMessages;
   newConv.branchNodes = newBranchNodes;
+
+  // 更新消息的children引用（可能指向分支节点）
+  for (const newMsgId in newMessages) {
+    const msg = newMessages[newMsgId];
+    if (msg.children && msg.children.length > 0) {
+      msg.children = msg.children.map(childId => {
+        // 先查消息ID映射，再查分支节点ID映射
+        return idMap[childId] || branchNodeIdMap[childId] || childId;
+      });
+    }
+  }
 
   // 保存新对话
   await saveConv(newConv);
