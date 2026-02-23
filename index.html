@@ -1377,7 +1377,7 @@ async function loadConv(id) {
       }
     }, 50);
   } else {
-    scrollToBottom();
+    scrollToBottom(true);  // 切换对话时强制滚动到底部
   }
 }
 
@@ -1705,7 +1705,7 @@ async function sendMessage(retryText = null, isRetry = false) {
   // 保存当前对话
   await saveConv(conv);
   await renderMessages();
-  scrollToBottom();
+  scrollToBottom(true);  // 发送消息后强制滚动到底部
 
   if (!isRetry) {
     input.value = '';
@@ -2244,7 +2244,20 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null) 
   return row;
 }
 
-function scrollToBottom(){ const m=g('messages'); m.scrollTop=m.scrollHeight; }
+// 检查用户是否在底部
+function isUserAtBottom() {
+  const m = g('messages');
+  const threshold = 50; // 距离底部50px内算作"在底部"
+  return m.scrollHeight - m.scrollTop - m.clientHeight < threshold;
+}
+
+// 智能滚动：只有用户在底部时才滚动
+function scrollToBottom(force = false) {
+  const m = g('messages');
+  if (force || isUserAtBottom()) {
+    m.scrollTop = m.scrollHeight;
+  }
+}
 
 // ========== BUBBLE ACTIONS ==========
 function copyMessage(btn) {
@@ -3059,7 +3072,7 @@ async function toggleOpt(key) {
           }
         }, 50);
       } else {
-        scrollToBottom();
+        scrollToBottom(true);  // 首次加载对话时强制滚动到底部
       }
     }
     else await newChat(false);
