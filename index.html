@@ -110,6 +110,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .textarea{padding:8px 10px;resize:vertical;min-height:70px;line-height:1.5;font-size:12px}
 .mono-input{font-family:'JetBrains Mono',monospace;font-size:10.5px}
 
+/* MODEL DROPDOWN */
+.model-input-wrapper{position:relative;display:flex;align-items:center;gap:0}
+.model-input-wrapper .input{flex:1;border-top-right-radius:0;border-bottom-right-radius:0;border-right:none}
+.model-dropdown-btn{height:33px;width:33px;background:var(--bg3);border:1px solid var(--border);border-left:none;border-top-right-radius:7px;border-bottom-right-radius:7px;color:var(--text3);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.model-dropdown-btn:hover{background:var(--bg4);color:var(--accent)}
+.model-dropdown-btn svg{width:12px;height:12px;transition:transform .15s}
+.model-dropdown-btn.open svg{transform:rotate(180deg)}
+.model-dropdown-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:7px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:1000;display:none;max-height:300px;overflow:hidden;flex-direction:column}
+.model-dropdown-menu.show{display:flex}
+.model-refresh-btn{padding:10px 12px;background:var(--bg3);border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;flex-shrink:0}
+.model-refresh-btn:hover{background:var(--bg4);color:var(--accent)}
+.model-refresh-btn.loading{opacity:0.6;cursor:wait}
+.refresh-icon{font-size:14px;display:inline-block;transition:transform .3s}
+.model-refresh-btn.loading .refresh-icon{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.model-list{overflow-y:auto;max-height:250px;flex:1}
+.model-list::-webkit-scrollbar{width:4px}
+.model-list::-webkit-scrollbar-track{background:transparent}
+.model-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.model-list-empty,.model-list-error{padding:20px;text-align:center;color:var(--text3);font-size:11px}
+.model-list-error{color:#e74c3c}
+.model-item,.provider-item{padding:8px 12px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text);border-bottom:1px solid var(--border);transition:background .15s}
+.model-item:last-child,.provider-item:last-child{border-bottom:none}
+.model-item:hover,.provider-item:hover{background:var(--bg4);color:var(--accent)}
+
+/* PROVIDER SECTION */
+.model-section-title{padding:6px 12px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+
 /* SLIDER */
 .slider-row{display:flex;align-items:center;gap:8px}
 .slider{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:2px;background:var(--bg4);outline:none;cursor:pointer}
@@ -199,6 +227,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 /* EDIT MODE */
 .bubble-edit-wrap{display:flex;flex-direction:column;gap:8px}
 .bubble-edit-textarea{background:var(--bg3);border:1px solid var(--accent);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:9px 14px;resize:none;min-height:80px;max-height:400px;outline:none;width:100%;overflow-y:auto}
+.bubble-edit-textarea::-webkit-scrollbar{width:8px}
+.bubble-edit-textarea::-webkit-scrollbar-track{background:var(--bg4);border-radius:4px}
+.bubble-edit-textarea::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+.bubble-edit-textarea::-webkit-scrollbar-thumb:hover{background:var(--accent);opacity:0.8}
 .bubble-edit-textarea:focus{box-shadow:0 0 0 3px var(--accent-glow)}
 .bubble-edit-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .bubble-edit-info{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3)}
@@ -397,14 +429,58 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
             </div>
             <div class="field">
               <label class="field-label" for="model-name">模型名称</label>
-              <input class="input mono-input" id="model-name" type="text" oninput="document.getElementById('model-badge').textContent=this.value;onPresetFieldChange()" aria-label="AI 模型名称">
+              <div class="model-input-wrapper">
+                <input class="input mono-input" id="model-name" type="text" oninput="document.getElementById('model-badge').textContent=this.value;onPresetFieldChange()" aria-label="AI 模型名称">
+                <button type="button" class="model-dropdown-btn" id="model-dropdown-btn" onclick="toggleModelDropdown(event)" aria-label="选择模型">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="model-dropdown-menu" id="model-dropdown">
+                  <button type="button" class="model-refresh-btn" onclick="refreshModels(event)">
+                    <span class="refresh-icon">↻</span> 刷新模型列表
+                  </button>
+                  <div class="model-list" id="model-list">
+                    <div class="model-list-empty">点击刷新获取模型列表</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field" id="provider-field" style="display: none;">
+              <label class="field-label" for="provider-name">提供商（可选）</label>
+              <div class="model-input-wrapper">
+                <input class="input mono-input" id="provider-name" type="text" placeholder="留空使用默认路由" oninput="onProviderInput()" aria-label="提供商名称">
+                <button type="button" class="model-dropdown-btn" id="provider-dropdown-btn" onclick="toggleProviderDropdown(event)" aria-label="选择提供商">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="model-dropdown-menu" id="provider-dropdown">
+                  <div class="model-list" id="provider-list">
+                    <div class="provider-item" onclick="selectProvider('')">留空（默认路由）</div>
+                    <div class="provider-item" onclick="selectProvider('openai')">OpenAI</div>
+                    <div class="provider-item" onclick="selectProvider('anthropic')">Anthropic</div>
+                    <div class="provider-item" onclick="selectProvider('google')">Google</div>
+                    <div class="provider-item" onclick="selectProvider('deepseek')">DeepSeek</div>
+                    <div class="provider-item" onclick="selectProvider('together')">Together</div>
+                    <div class="provider-item" onclick="selectProvider('deepinfra')">DeepInfra</div>
+                    <div class="provider-item" onclick="selectProvider('fireworks')">Fireworks</div>
+                    <div class="provider-item" onclick="selectProvider('lepton')">Lepton</div>
+                    <div class="provider-item" onclick="selectProvider('novita')">Novita</div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="field">
               <label class="field-label" for="api-format">API 格式</label>
-              <select class="input" id="api-format" onchange="onPresetFieldChange()" aria-label="API 格式">
-                <option value="openai">OpenAI 兼容（默认）</option>
-                <option value="claude">Anthropic Claude</option>
-              </select>
+              <div class="model-input-wrapper">
+                <input class="input" id="api-format" type="text" readonly onclick="toggleFormatDropdown(event)" aria-label="API 格式" style="cursor: pointer;">
+                <button type="button" class="model-dropdown-btn" id="format-dropdown-btn" onclick="toggleFormatDropdown(event)" aria-label="选择格式">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="model-dropdown-menu" id="format-dropdown">
+                  <div class="model-list">
+                    <div class="provider-item" onclick="selectFormat('openai')">OpenAI 兼容（默认）</div>
+                    <div class="provider-item" onclick="selectFormat('claude')">Anthropic Claude</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -535,7 +611,7 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
           <div class="collapse-body" id="body-sys">
             <label for="system-prompt" class="sr-only">系统提示词</label>
             <textarea class="textarea" id="system-prompt" rows="5"
-              placeholder="设定 AI 的角色或行为规则…" oninput="saveSettings()" aria-label="系统提示词">You are a helpful, accurate, and thoughtful AI assistant.</textarea>
+              placeholder="设定 AI 的角色或行为规则…" oninput="onSystemPromptChange()" aria-label="系统提示词"></textarea>
           </div>
 
           <div class="divider"></div>
@@ -753,7 +829,7 @@ let activePresetId = null;
 let fullApiKeys = {}; // { presetId: plaintext key }
 
 function getDefaultPresets() {
-  return [{ id: 'preset_default', name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'deepseek/deepseek-chat-v3.1', format: 'openai' }];
+  return [{ id: 'preset_default', name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'deepseek/deepseek-chat-v3.1', format: 'openai', provider: '' }];
 }
 
 function getActivePreset() {
@@ -788,7 +864,24 @@ function selectPreset(id) {
   g('api-url').value = p.url;
   g('model-name').value = p.model;
   g('model-badge').textContent = p.model;
-  g('api-format').value = p.format;
+
+  // 显示格式名称
+  const formatNames = {
+    'openai': 'OpenAI 兼容（默认）',
+    'claude': 'Anthropic Claude'
+  };
+  g('api-format').value = formatNames[p.format] || formatNames['openai'];
+
+  // 加载提供商字段
+  g('provider-name').value = p.provider || '';
+
+  // 检查是否为 OpenRouter，显示/隐藏提供商字段
+  const isOpenRouter = p.url && p.url.includes('openrouter.ai');
+  const providerField = g('provider-field');
+  if (providerField) {
+    providerField.style.display = isOpenRouter ? 'block' : 'none';
+  }
+
   const plainKey = fullApiKeys[id] || '';
   fullApiKey = plainKey;
   isTypingApiKey = false;
@@ -804,8 +897,256 @@ function onPresetFieldChange() {
   p.url = g('api-url').value;
   p.model = g('model-name').value;
   p.format = g('api-format').value;
+
+  // 检查是否为 OpenRouter，显示/隐藏提供商字段
+  const isOpenRouter = p.url && p.url.includes('openrouter.ai');
+  const providerField = g('provider-field');
+  if (providerField) {
+    providerField.style.display = isOpenRouter ? 'block' : 'none';
+  }
+
   saveSettings();
 }
+
+function onProviderInput() {
+  const p = getActivePreset();
+  if (!p) return;
+  const providerValue = g('provider-name').value;
+  p.provider = providerValue || null;
+  saveSettings();
+}
+
+// ========== MODEL DROPDOWN ==========
+// 存储每个 preset 的模型列表（完整信息）
+const presetModels = {};
+
+function toggleModelDropdown(e) {
+  e.stopPropagation();
+  const dropdown = g('model-dropdown');
+  const btn = g('model-dropdown-btn');
+  const isOpen = dropdown.classList.contains('show');
+
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    btn.classList.remove('open');
+  } else {
+    // 加载当前 preset 的模型列表
+    const preset = getActivePreset();
+    if (preset && presetModels[preset.id]) {
+      renderModelList(presetModels[preset.id], preset);
+    }
+    dropdown.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+async function refreshModels(e) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const preset = getActivePreset();
+
+  if (!preset) return;
+
+  // 显示加载状态
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const models = await fetchModels(preset);
+
+    if (models.length === 0) {
+      // 没有获取到模型
+      renderModelList(null, preset, '无法获取模型列表，请检查 API 配置');
+    } else {
+      // 保存到当前 preset
+      presetModels[preset.id] = models;
+      renderModelList(models, preset);
+    }
+  } catch (error) {
+    console.error('Failed to fetch models:', error);
+    renderModelList(null, preset, '获取模型列表失败：' + error.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+async function fetchModels(preset) {
+  const apiKey = fullApiKeys[preset.id] || '';
+  if (!apiKey) {
+    throw new Error('请先配置 API Key');
+  }
+
+  let modelsData = [];
+
+  // 尝试 OpenAI 格式
+  try {
+    const openaiUrl = preset.url.replace(/\/(chat\/completions|messages)$/, '/models');
+    const response = await fetch(openaiUrl, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.data && Array.isArray(data.data)) {
+        // 保存完整的模型信息
+        modelsData = data.data;
+      }
+    }
+  } catch (e) {
+    console.log('OpenAI format failed:', e.message);
+  }
+
+  // 如果 OpenAI 格式失败，尝试 Claude 格式
+  if (modelsData.length === 0) {
+    try {
+      const claudeUrl = preset.url.replace(/\/messages$/, '/models');
+      const response = await fetch(claudeUrl, {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && Array.isArray(data.data)) {
+          modelsData = data.data;
+        }
+      }
+    } catch (e) {
+      console.log('Claude format failed:', e.message);
+    }
+  }
+
+  // 返回完整的模型信息
+  return modelsData;
+}
+
+function renderModelList(models, preset, errorMsg = null) {
+  const listEl = g('model-list');
+
+  if (errorMsg) {
+    listEl.innerHTML = `<div class="model-list-error">${escapeHtml(errorMsg)}</div>`;
+    return;
+  }
+
+  if (!models || models.length === 0) {
+    listEl.innerHTML = '<div class="model-list-empty">点击刷新获取模型列表</div>';
+    return;
+  }
+
+  let html = '';
+
+  // 显示模型列表
+  html += '<div class="model-section-title">🤖 模型</div>';
+  const sortedModels = models.map(m => m.id || m).sort();
+  sortedModels.forEach(modelId => {
+    html += `<div class="model-item" onclick="selectModel('${escapeHtml(modelId)}')">${escapeHtml(modelId)}</div>`;
+  });
+
+  listEl.innerHTML = html;
+}
+
+function selectModel(modelName) {
+  const input = g('model-name');
+  input.value = modelName;
+  g('model-badge').textContent = modelName;
+  onPresetFieldChange();
+
+  // 关闭下拉菜单
+  g('model-dropdown').classList.remove('show');
+  g('model-dropdown-btn').classList.remove('open');
+}
+
+// ========== PROVIDER DROPDOWN ==========
+function toggleProviderDropdown(e) {
+  e.stopPropagation();
+  const dropdown = g('provider-dropdown');
+  const btn = g('provider-dropdown-btn');
+  const isOpen = dropdown.classList.contains('show');
+
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    btn.classList.remove('open');
+  } else {
+    dropdown.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+function selectProvider(providerName) {
+  const input = g('provider-name');
+  input.value = providerName;
+  onProviderInput();
+
+  // 关闭下拉菜单
+  g('provider-dropdown').classList.remove('show');
+  g('provider-dropdown-btn').classList.remove('open');
+}
+
+// ========== FORMAT DROPDOWN ==========
+function toggleFormatDropdown(e) {
+  e.stopPropagation();
+  const dropdown = g('format-dropdown');
+  const btn = g('format-dropdown-btn');
+  const isOpen = dropdown.classList.contains('show');
+
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    btn.classList.remove('open');
+  } else {
+    dropdown.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+function selectFormat(formatValue) {
+  const input = g('api-format');
+  const formatNames = {
+    'openai': 'OpenAI 兼容（默认）',
+    'claude': 'Anthropic Claude'
+  };
+  input.value = formatNames[formatValue] || formatValue;
+
+  // 更新 preset
+  const p = getActivePreset();
+  if (p) {
+    p.format = formatValue;
+    saveSettings();
+  }
+
+  // 关闭下拉菜单
+  g('format-dropdown').classList.remove('show');
+  g('format-dropdown-btn').classList.remove('open');
+}
+
+// 点击外部关闭下拉菜单
+document.addEventListener('click', (e) => {
+  const modelDropdown = g('model-dropdown');
+  const providerDropdown = g('provider-dropdown');
+  const formatDropdown = g('format-dropdown');
+  const modelBtn = g('model-dropdown-btn');
+  const providerBtn = g('provider-dropdown-btn');
+  const formatBtn = g('format-dropdown-btn');
+  const wrapper = e.target.closest('.model-input-wrapper');
+
+  if (!wrapper) {
+    if (modelDropdown) modelDropdown.classList.remove('show');
+    if (providerDropdown) providerDropdown.classList.remove('show');
+    if (formatDropdown) formatDropdown.classList.remove('show');
+    if (modelBtn) modelBtn.classList.remove('open');
+    if (providerBtn) providerBtn.classList.remove('open');
+    if (formatBtn) formatBtn.classList.remove('open');
+  }
+});
+
 
 async function addNewPreset() {
   const id = 'preset_' + Date.now();
@@ -1018,6 +1359,17 @@ function handleApiKeyInput(event) {
   }, 1000);
 }
 
+async function onSystemPromptChange() {
+  if (!currentConvId) return;  // 添加保护
+
+  const convs = await getConvs();
+  const conv = convs.find(c => c.id === currentConvId);
+  if (conv) {
+    conv.systemPrompt = g('system-prompt').value;
+    await saveConv(conv, false);
+  }
+}
+
 async function saveSettings() {
   const encryptedPresets = await Promise.all(apiPresets.map(async p => ({
     ...p,
@@ -1031,7 +1383,6 @@ async function saveSettings() {
     topP: g('s-top-p').value, topK: g('s-top-k').value,
     freqPen: g('s-freq-pen').value, presPen: g('s-pres-pen').value,
     repPen: g('s-rep-pen').value, minP: g('s-min-p').value, topA: g('s-top-a').value,
-    sysPrompt: g('system-prompt').value,
     stream: streamEnabled, md: mdEnabled, hl: hlEnabled,
     theme: document.documentElement.getAttribute('data-theme') || 'dark',
     activePanel,
@@ -1062,7 +1413,24 @@ async function loadSettings() {
   g('api-url').value = p.url;
   g('model-name').value = p.model;
   g('model-badge').textContent = p.model;
-  g('api-format').value = p.format || 'openai';
+
+  // 显示格式名称
+  const formatNames = {
+    'openai': 'OpenAI 兼容（默认）',
+    'claude': 'Anthropic Claude'
+  };
+  g('api-format').value = formatNames[p.format || 'openai'];
+
+  // 加载提供商字段
+  g('provider-name').value = p.provider || '';
+
+  // 检查是否为 OpenRouter，显示/隐藏提供商字段
+  const isOpenRouter = p.url && p.url.includes('openrouter.ai');
+  const providerField = g('provider-field');
+  if (providerField) {
+    providerField.style.display = isOpenRouter ? 'block' : 'none';
+  }
+
   const plainKey = fullApiKeys[activePresetId] || '';
   fullApiKey = plainKey;
   if (plainKey && plainKey.length > 12) {
@@ -1080,7 +1448,6 @@ async function loadSettings() {
   setv('s-rep-pen',     s.repPen      ?? 1);
   setv('s-min-p',       s.minP        ?? 0);
   setv('s-top-a',       s.topA        ?? 0);
-  setv('system-prompt', s.sysPrompt   ?? 'You are a helpful, accurate, and thoughtful AI assistant.');
   streamEnabled = s.stream !== false;
   mdEnabled     = s.md     !== false;
   hlEnabled     = s.hl     !== false;
@@ -1316,7 +1683,7 @@ async function newChat(saveCurrent = true) {
   const systemMessage = {
     id: systemMsgId,
     role: 'system',
-    content: g('system-prompt').value || 'You are a helpful, accurate, and thoughtful AI assistant.',
+    content: '',
     parentId: null,
     children: [],
     timestamp: Date.now()
@@ -1332,6 +1699,7 @@ async function newChat(saveCurrent = true) {
       [systemMsgId]: systemMessage
     },
     branchNodes: {},
+    systemPrompt: '',
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -1614,6 +1982,9 @@ async function renderMessages() {
     return;
   }
 
+  // 加载当前对话的系统提示词
+  g('system-prompt').value = conv.systemPrompt || '';
+
   // 构建渲染路径
   const { messages, branchPoints } = buildRenderPath(conv);
 
@@ -1729,7 +2100,7 @@ async function sendMessage(retryText = null, isRetry = false) {
   const apiKey = (fullApiKey || '').trim();
   const model = preset.model.trim();
   const format = preset.format || 'openai';
-  const sysP = g('system-prompt').value.trim();
+  const sysP = conv.systemPrompt || '';
   const chatMemory = parseInt(g('s-chat-memory').value) || 0;
   const mt = parseInt(g('s-max-tokens').value);
   const temp = parseFloat(g('s-temp').value);
@@ -1820,6 +2191,11 @@ async function sendMessage(retryText = null, isRetry = false) {
       if (topK > 0) body.top_k = topK;
       if (minP > 0) body.min_p = minP;
       if (topA > 0) body.top_a = topA;
+
+      // OpenRouter: 添加 provider.order
+      if (preset.provider && apiUrl.includes('openrouter.ai')) {
+        body.provider = { order: [preset.provider] };
+      }
     }
 
     const res = await fetch(apiUrl, {
@@ -1979,7 +2355,7 @@ async function sendMessageToTree(userText, aiMessageId) {
   const apiKey = (fullApiKey || '').trim();
   const model = preset.model.trim();
   const format = preset.format || 'openai';
-  const sysP = g('system-prompt').value.trim();
+  const sysP = conv.systemPrompt || '';
   const chatMemory = parseInt(g('s-chat-memory').value) || 0;
   const mt = parseInt(g('s-max-tokens').value);
   const temp = parseFloat(g('s-temp').value);
@@ -2063,6 +2439,11 @@ async function sendMessageToTree(userText, aiMessageId) {
       if (topK > 0) body.top_k = topK;
       if (minP > 0) body.min_p = minP;
       if (topA > 0) body.top_a = topA;
+
+      // OpenRouter: 添加 provider.order
+      if (preset.provider && apiUrl.includes('openrouter.ai')) {
+        body.provider = { order: [preset.provider] };
+      }
     }
 
     const res = await fetch(apiUrl, {
