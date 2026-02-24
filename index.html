@@ -2713,7 +2713,7 @@ async function sendMessageToTree(userText, aiMessageId) {
     const updatedConv = updatedConvs.find(c => c.id === currentConvId);
     if (updatedConv && updatedConv.messages[aiMessageId]) {
       updatedConv.messages[aiMessageId].content = fullText;
-      await setConvs(updatedConvs);
+      await saveConv(updatedConv);
     }
 
     setStatus('green', '就绪');

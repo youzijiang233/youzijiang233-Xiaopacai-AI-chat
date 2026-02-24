@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.3.3-blue)
+![Version](https://img.shields.io/badge/version-1.3.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -148,6 +148,13 @@ xiaopacai-AI-chat/
 - [ ] 可选的云同步
 
 ## 📝 版本历史
+
+### v1.3.4 (2025-02-24)
+- 🐛 修复重试和编辑重新生成时错误更新所有对话时间戳的问题
+
+### v1.3.3 (2025-02-24)
+- 📝 更新应用名称为 Xiaopacai AI Chat
+- 📄 添加 MIT 许可证文件
 
 ### v1.3.2 (2025-02-23)
 - ⚡ 性能优化：实现滚动位置防抖，减少文件写入次数
