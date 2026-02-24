@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.3.5-blue)
+![Version](https://img.shields.io/badge/version-1.3.6-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -150,6 +150,15 @@ xiaopacai-AI-chat/
 - [ ] 可选的云同步
 
 ## 📝 版本历史
+
+### v1.3.6 (2025-02-25)
+- ✨ 添加消息字体大小调节滑条（12px - 24px）
+- ✨ 添加消息区域宽度调节滑条（600px - 1800px）
+- 🔄 为两个滑条添加重置按钮
+- 🎯 调节字体大小时保持当前可见消息位置不变
+- 🎯 调节消息宽度时保持滚动位置（松开滑条时恢复）
+- 💾 字体大小和消息宽度设置自动保存和恢复
+- 🐛 修复 Enter 发送模式下 Ctrl+Enter 无法换行的问题
 
 ### v1.3.5 (2025-02-24)
 - ⌨️ 新增发送按键模式切换功能

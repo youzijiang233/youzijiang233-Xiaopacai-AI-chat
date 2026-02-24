@@ -202,11 +202,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
 /* message-row: ~1 char height (≈1em) vertical spacing */
-.message-row{padding:7px 64px 7px 26px;display:flex;gap:12px;max-width:860px;margin:0 auto;width:100%;animation:fadeUp .18s ease;align-items:flex-start;margin-bottom:12px}
+.message-row{padding:7px 64px 7px 26px;display:flex;gap:12px;max-width:1080px;margin:0 auto;width:100%;animation:fadeUp .18s ease;align-items:flex-start;margin-bottom:12px}
 .message-row.user-row{flex-direction:row-reverse;padding-right:26px;padding-left:calc(26px + 29px + 12px)}
 .message-row.user-row .bubble{display:flex;flex-direction:column;align-items:flex-end}
 .message-row.user-row .bubble-name{text-align:right}
-.message-row.user-row .bubble-content.user-msg{max-width:480px}
+.message-row.user-row .bubble-content.user-msg{max-width:56%}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
 .avatar{width:29px;height:29px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:-12px}
@@ -227,6 +227,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .bubble-action-btn:hover{background:var(--bg3);color:var(--text)}
 .bubble-action-btn.del:hover{background:rgba(224,92,108,.15);color:var(--red)}
 .bubble-action-btn svg{width:13px;height:13px}
+
+/* SLIDER RESET BUTTON */
+.slider-reset-btn{position:absolute;top:8px;right:11px;width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;padding:0}
+.slider-reset-btn:hover{background:var(--bg4);color:var(--text)}
+.slider-reset-btn svg{width:11px;height:11px}
 
 /* EDIT MODE */
 .bubble-edit-wrap{display:flex;flex-direction:column;gap:8px}
@@ -286,7 +291,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 
 /* INPUT BAR */
 .input-bar-outer{background:var(--bg);border-top:1px solid var(--border);flex-shrink:0}
-.input-bar{padding:12px 24px 15px;max-width:860px;margin:0 auto;width:100%}
+.input-bar{padding:12px 24px 15px;max-width:1080px;margin:0 auto;width:100%}
 .input-wrap{display:flex;gap:9px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:9px 15px;transition:border-color .15s,box-shadow .15s}
 .input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
 #user-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;resize:none;max-height:180px;overflow-y:auto;padding:0}
@@ -613,6 +618,26 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
               <div class="toggle-info"><div class="toggle-name">Enter 发送</div><div class="toggle-desc">开启：Enter 发送；关闭：Ctrl+Enter 发送</div></div>
               <div class="toggle on" id="enter-send-toggle" onclick="toggleOpt('enterSend')"></div>
             </div>
+            <div class="toggle-row" style="flex-direction:column;align-items:stretch;gap:8px;position:relative">
+              <button type="button" class="slider-reset-btn" onclick="resetFontSize()" title="重置字体大小">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+              </button>
+              <div class="toggle-info"><div class="toggle-name">消息字体大小</div><div class="toggle-desc">调节对话消息的字体大小</div></div>
+              <div class="slider-row">
+                <input type="range" class="slider" id="font-size-slider" min="12" max="24" step="1" value="14" oninput="updateFontSize(this.value)">
+                <span class="slider-val" id="font-size-val">14px</span>
+              </div>
+            </div>
+            <div class="toggle-row" style="flex-direction:column;align-items:stretch;gap:8px;position:relative">
+              <button type="button" class="slider-reset-btn" onclick="resetMessageWidth()" title="重置消息宽度">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+              </button>
+              <div class="toggle-info"><div class="toggle-name">消息区域宽度</div><div class="toggle-desc">调节消息区域的最大宽度</div></div>
+              <div class="slider-row">
+                <input type="range" class="slider" id="message-width-slider" min="600" max="1800" step="20" value="1080" oninput="updateMessageWidthPreview(this.value)" onchange="updateMessageWidthFinal(this.value)">
+                <span class="slider-val" id="message-width-val">1080px</span>
+              </div>
+            </div>
           </div>
 
           <div class="divider"></div>
@@ -701,7 +726,10 @@ let streamEnabled = true;
 let mdEnabled = true;
 let hlEnabled = true;
 let enterToSend = true; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
+let messageFontSize = 14; // 消息字体大小（px）
+let messageWidth = 1080; // 消息区域宽度（px）
 let activePanel = 'settings';
+let messageWidthAdjustData = null; // 消息宽度调节时的位置记录
 
 // ══ CONCURRENT REQUEST CONTROL ══
 const conversationControllers = new Map(); // convId -> AbortController
@@ -1461,6 +1489,8 @@ async function saveSettings() {
     freqPen: g('s-freq-pen').value, presPen: g('s-pres-pen').value,
     repPen: g('s-rep-pen').value, minP: g('s-min-p').value, topA: g('s-top-a').value,
     stream: streamEnabled, md: mdEnabled, hl: hlEnabled, enterToSend: enterToSend,
+    messageFontSize: messageFontSize,
+    messageWidth: messageWidth,
     theme: document.documentElement.getAttribute('data-theme') || 'dark',
     activePanel,
     collapseStates: getCollapseStates(),
@@ -1530,11 +1560,27 @@ async function loadSettings() {
   mdEnabled     = s.md     !== false;
   hlEnabled     = s.hl     !== false;
   enterToSend   = s.enterToSend !== false;
+  messageFontSize = s.messageFontSize ?? 14;
+  messageWidth = s.messageWidth ?? 1080;
   g('stream-toggle').classList.toggle('on', streamEnabled);
   g('md-toggle').classList.toggle('on', mdEnabled);
   g('hl-toggle').classList.toggle('on', hlEnabled);
   g('enter-send-toggle').classList.toggle('on', enterToSend);
+  g('font-size-slider').value = messageFontSize;
+  g('font-size-val').textContent = messageFontSize + 'px';
+  g('message-width-slider').value = messageWidth;
+  g('message-width-val').textContent = messageWidth + 'px';
   updateInputHints();
+
+  // 应用字体大小到所有消息
+  document.querySelectorAll('.bubble-content').forEach(el => {
+    el.style.fontSize = messageFontSize + 'px';
+  });
+
+  // 应用消息宽度到所有消息
+  document.querySelectorAll('.message-row').forEach(el => {
+    el.style.maxWidth = messageWidth + 'px';
+  });
 
   // 加载缩放等级
   if (s.zoomLevel !== undefined) {
@@ -2812,9 +2858,10 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null) 
   row.innerHTML = `<div class="avatar ${role}">${isUser?'U':'AI'}</div>
     <div class="bubble">
       <div class="bubble-name ${isUser?'user-name':'ai-name'}">${modelName}</div>
-      <div class="bubble-content ${isUser?'user-msg':'ai-msg'}">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
+      <div class="bubble-content ${isUser?'user-msg':'ai-msg'}" style="font-size:${messageFontSize}px">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
       ${actions}
     </div>`;
+  row.style.maxWidth = messageWidth + 'px';
   g('messages').appendChild(row);
   return row;
 }
@@ -3241,6 +3288,15 @@ function editMessage(btn) {
         if (!e.ctrlKey && !e.shiftKey) {
           e.preventDefault();
           wrap.querySelector('.save').click();
+        } else {
+          // Ctrl+Enter 或 Shift+Enter 换行
+          e.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const value = textarea.value;
+          textarea.value = value.substring(0, start) + '\n' + value.substring(end);
+          textarea.selectionStart = textarea.selectionEnd = start + 1;
+          autoResize(textarea);
         }
       } else {
         // Ctrl+Enter保存模式：Ctrl/Shift+Enter保存，Enter换行
@@ -3557,6 +3613,115 @@ function updateInputHints(){
     keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
   }
 }
+
+function updateFontSize(size){
+  messageFontSize = parseInt(size);
+  g('font-size-val').textContent = size + 'px';
+
+  const messagesContainer = g('messages');
+
+  // 找到当前视口顶部的第一个可见消息
+  const messageRows = messagesContainer.querySelectorAll('.message-row');
+  let topVisibleMessage = null;
+  let topOffset = 0;
+
+  for (const row of messageRows) {
+    const rect = row.getBoundingClientRect();
+    const containerRect = messagesContainer.getBoundingClientRect();
+
+    // 找到第一个在视口内的消息
+    if (rect.top >= containerRect.top && rect.top < containerRect.bottom) {
+      topVisibleMessage = row;
+      topOffset = rect.top - containerRect.top;
+      break;
+    }
+  }
+
+  // 应用新的字体大小
+  document.querySelectorAll('.bubble-content').forEach(el => {
+    el.style.fontSize = size + 'px';
+  });
+
+  // 恢复滚动位置，保持顶部可见消息在相同位置
+  if (topVisibleMessage) {
+    requestAnimationFrame(() => {
+      const newRect = topVisibleMessage.getBoundingClientRect();
+      const containerRect = messagesContainer.getBoundingClientRect();
+      const newTopOffset = newRect.top - containerRect.top;
+      const scrollAdjustment = newTopOffset - topOffset;
+      messagesContainer.scrollTop += scrollAdjustment;
+    });
+  }
+
+  saveSettings();
+}
+
+function updateMessageWidthPreview(width){
+  const messagesContainer = g('messages');
+
+  // 第一次拖动时，记录当前视口顶部的可见消息位置
+  if (messageWidthAdjustData === null) {
+    const messageRows = messagesContainer.querySelectorAll('.message-row');
+    let topVisibleMessage = null;
+    let topOffset = 0;
+
+    for (const row of messageRows) {
+      const rect = row.getBoundingClientRect();
+      const containerRect = messagesContainer.getBoundingClientRect();
+
+      if (rect.top >= containerRect.top && rect.top < containerRect.bottom) {
+        topVisibleMessage = row;
+        topOffset = rect.top - containerRect.top;
+        break;
+      }
+    }
+
+    messageWidthAdjustData = { topVisibleMessage, topOffset };
+  }
+
+  messageWidth = parseInt(width);
+  g('message-width-val').textContent = width + 'px';
+
+  // 只应用宽度，不调整滚动位置
+  document.querySelectorAll('.message-row').forEach(el => {
+    el.style.maxWidth = width + 'px';
+  });
+}
+
+function updateMessageWidthFinal(width){
+  messageWidth = parseInt(width);
+
+  // 恢复滚动位置，保持开始拖动时的顶部可见消息在相同位置
+  if (messageWidthAdjustData && messageWidthAdjustData.topVisibleMessage) {
+    const { topVisibleMessage, topOffset } = messageWidthAdjustData;
+
+    requestAnimationFrame(() => {
+      const messagesContainer = g('messages');
+      const newRect = topVisibleMessage.getBoundingClientRect();
+      const containerRect = messagesContainer.getBoundingClientRect();
+      const newTopOffset = newRect.top - containerRect.top;
+      const scrollAdjustment = newTopOffset - topOffset;
+      messagesContainer.scrollTop += scrollAdjustment;
+    });
+  }
+
+  // 清除记录的位置数据
+  messageWidthAdjustData = null;
+
+  saveSettings();
+}
+
+function resetFontSize(){
+  updateFontSize(14);
+  g('font-size-slider').value = 14;
+}
+
+function resetMessageWidth(){
+  updateMessageWidthPreview(1080);
+  updateMessageWidthFinal(1080);
+  g('message-width-slider').value = 1080;
+}
+
 function handleKey(e){
   if(e.key==='Enter'){
     if(enterToSend){
@@ -3564,6 +3729,17 @@ function handleKey(e){
       if(!e.ctrlKey && !e.shiftKey){
         e.preventDefault();
         sendMessage();
+      } else {
+        // Ctrl+Enter 或 Shift+Enter 换行
+        e.preventDefault();
+        const textarea = e.target;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        textarea.value = value.substring(0, start) + '\n' + value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + 1;
+        autoResize(textarea);
+        updateCharCount();
       }
     } else {
       // Ctrl+Enter发送模式：Ctrl/Shift+Enter发送，Enter换行
