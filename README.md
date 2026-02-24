@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.3.4-blue)
+![Version](https://img.shields.io/badge/version-1.3.5-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -38,7 +38,8 @@
 - **模型选择**：支持刷新和检测 API 支持的模型列表
 - **OpenRouter 提供商**：可指定 OpenRouter API 的服务商
 - **生成参数**：精细调整 temperature、top-p、top-k、penalties 等
-- **增强的编辑体验**：自动调整高度、字符计数、快捷键支持（Ctrl+Enter 保存，Esc 取消）
+- **增强的编辑体验**：自动调整高度、字符计数、快捷键支持
+- **发送按键切换**：可选 Enter 发送或 Ctrl+Enter 发送模式
 - **一键重置**：重置所有生成参数到默认值
 - **本地存储**：所有数据以 JSON 格式本地存储
 - **系统加密**：使用 Electron safeStorage 加密 API 密钥
@@ -93,8 +94,9 @@ npm run build
 
 ### 基础使用
 1. 在底部输入框输入消息
-2. 按 `Ctrl+Enter` 或点击发送按钮
+2. 按 `Enter`（默认）或点击发送按钮发送消息
 3. 等待 AI 回复（会看到打字光标）
+4. 可在功能选项中切换发送按键模式
 
 ### 高级功能
 
@@ -148,6 +150,17 @@ xiaopacai-AI-chat/
 - [ ] 可选的云同步
 
 ## 📝 版本历史
+
+### v1.3.5 (2025-02-24)
+- ⌨️ 新增发送按键模式切换功能
+  - 默认：Enter 发送，Ctrl+Enter 换行
+  - 可切换：Ctrl+Enter 发送，Enter 换行
+- 🎛️ 在功能选项中添加「Enter 发送」开关
+- 💡 动态更新输入框和编辑框的快捷键提示
+- 🎨 优化停止按钮视觉效果
+  - 红色渐变背景
+  - 脉冲阴影动画
+  - 改进悬停和点击交互
 
 ### v1.3.4 (2025-02-24)
 - 🐛 修复重试和编辑重新生成时错误更新所有对话时间戳的问题

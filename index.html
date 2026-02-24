@@ -293,12 +293,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 #user-input::placeholder{color:var(--text3)}
 #user-input::-webkit-scrollbar{width:3px}
 #user-input::-webkit-scrollbar-thumb{background:var(--border2)}
-.send-btn{width:36px;height:36px;border-radius:9px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s,box-shadow .2s}
-.send-btn:hover{background:var(--accent2)}
-.send-btn:active{transform:scale(.93)}
-.send-btn.stop-mode{background:var(--red);box-shadow:0 0 14px rgba(224,92,108,.4)}
-.send-btn.stop-mode:hover{background:#c94455}
-.send-btn svg{width:15px;height:15px}
+.send-btn{width:36px;height:36px;border-radius:9px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s ease;position:relative}
+.send-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(var(--accent-rgb),.3)}
+.send-btn:active{transform:scale(.95) translateY(0)}
+.send-btn.stop-mode{background:linear-gradient(135deg,#e05c6c 0%,#c94455 100%);box-shadow:0 4px 16px rgba(224,92,108,.35),0 0 0 0 rgba(224,92,108,.4);animation:pulse-stop 2s ease-in-out infinite}
+.send-btn.stop-mode:hover{background:linear-gradient(135deg,#c94455 0%,#b33a4a 100%);transform:translateY(-1px);box-shadow:0 6px 20px rgba(224,92,108,.45)}
+.send-btn.stop-mode:active{transform:scale(.95) translateY(0)}
+.send-btn svg{width:15px;height:15px;transition:transform .2s ease}
+@keyframes pulse-stop{0%,100%{box-shadow:0 4px 16px rgba(224,92,108,.35),0 0 0 0 rgba(224,92,108,.4)}50%{box-shadow:0 4px 20px rgba(224,92,108,.45),0 0 0 8px rgba(224,92,108,0)}}
 .input-footer{display:flex;justify-content:space-between;align-items:center;padding:5px 4px 0;font-size:11px;color:var(--text3)}
 .key-hint{display:flex;gap:5px;align-items:center}
 kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px}
@@ -607,6 +609,10 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
               <div class="toggle-info"><div class="toggle-name">代码高亮</div><div class="toggle-desc">语法着色</div></div>
               <div class="toggle on" id="hl-toggle" onclick="toggleOpt('hl')"></div>
             </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Enter 发送</div><div class="toggle-desc">开启：Enter 发送；关闭：Ctrl+Enter 发送</div></div>
+              <div class="toggle on" id="enter-send-toggle" onclick="toggleOpt('enterSend')"></div>
+            </div>
           </div>
 
           <div class="divider"></div>
@@ -677,7 +683,7 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
           </button>
         </div>
         <div class="input-footer">
-          <div class="key-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行</div>
+          <div class="key-hint" id="key-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行</div>
           <span class="char-count" id="char-count">0</span>
         </div>
       </div>
@@ -694,6 +700,7 @@ let isGenerating = false;
 let streamEnabled = true;
 let mdEnabled = true;
 let hlEnabled = true;
+let enterToSend = true; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
 let activePanel = 'settings';
 
 // ══ CONCURRENT REQUEST CONTROL ══
@@ -1453,7 +1460,7 @@ async function saveSettings() {
     topP: g('s-top-p').value, topK: g('s-top-k').value,
     freqPen: g('s-freq-pen').value, presPen: g('s-pres-pen').value,
     repPen: g('s-rep-pen').value, minP: g('s-min-p').value, topA: g('s-top-a').value,
-    stream: streamEnabled, md: mdEnabled, hl: hlEnabled,
+    stream: streamEnabled, md: mdEnabled, hl: hlEnabled, enterToSend: enterToSend,
     theme: document.documentElement.getAttribute('data-theme') || 'dark',
     activePanel,
     collapseStates: getCollapseStates(),
@@ -1522,9 +1529,12 @@ async function loadSettings() {
   streamEnabled = s.stream !== false;
   mdEnabled     = s.md     !== false;
   hlEnabled     = s.hl     !== false;
+  enterToSend   = s.enterToSend !== false;
   g('stream-toggle').classList.toggle('on', streamEnabled);
   g('md-toggle').classList.toggle('on', mdEnabled);
   g('hl-toggle').classList.toggle('on', hlEnabled);
+  g('enter-send-toggle').classList.toggle('on', enterToSend);
+  updateInputHints();
 
   // 加载缩放等级
   if (s.zoomLevel !== undefined) {
@@ -3167,6 +3177,7 @@ function editMessage(btn) {
   wrap.className = 'bubble-edit-wrap';
 
   // AI消息只显示"取消"和"保存"，用户消息显示"取消"、"保存"和"保存并重新生成"
+  const saveHint = enterToSend ? 'Enter 保存' : 'Ctrl+Enter 保存';
   const buttons = isUserMessage
     ? `<button class="bubble-edit-btn cancel">取消</button>
        <button class="bubble-edit-btn save">保存</button>
@@ -3179,7 +3190,7 @@ function editMessage(btn) {
     <div class="bubble-edit-footer">
       <div class="bubble-edit-info">
         <span class="bubble-edit-char-count"><span class="char-count">0</span> 字符</span>
-        <span class="bubble-edit-hint">Ctrl+Enter 保存 · Esc 取消</span>
+        <span class="bubble-edit-hint">${saveHint} · Esc 取消</span>
       </div>
       <div class="bubble-edit-btns">
         ${buttons}
@@ -3224,9 +3235,20 @@ function editMessage(btn) {
     if (e.key === 'Escape') {
       e.preventDefault();
       wrap.querySelector('.cancel').click();
-    } else if (e.key === 'Enter' && e.ctrlKey) {
-      e.preventDefault();
-      wrap.querySelector('.save').click();
+    } else if (e.key === 'Enter') {
+      if (enterToSend) {
+        // Enter保存模式：Enter保存，Ctrl/Shift+Enter换行
+        if (!e.ctrlKey && !e.shiftKey) {
+          e.preventDefault();
+          wrap.querySelector('.save').click();
+        }
+      } else {
+        // Ctrl+Enter保存模式：Ctrl/Shift+Enter保存，Enter换行
+        if (e.ctrlKey || e.shiftKey) {
+          e.preventDefault();
+          wrap.querySelector('.save').click();
+        }
+      }
     }
   });
 
@@ -3521,7 +3543,37 @@ async function updateStats() {
 
 function updateCharCount(){ g('char-count').textContent=g('user-input').value.length; }
 function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,180)+'px'; }
-function handleKey(e){ if(e.key==='Enter'&&e.ctrlKey){ e.preventDefault(); sendMessage(); } }
+function updateInputHints(){
+  const input = g('user-input');
+  const sendBtn = g('send-btn');
+  const keyHint = g('key-hint');
+  if(enterToSend){
+    input.placeholder = '输入消息，Enter 发送…';
+    sendBtn.title = '发送 (Enter)';
+    keyHint.innerHTML = '<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 换行';
+  } else {
+    input.placeholder = '输入消息，Ctrl+Enter 发送…';
+    sendBtn.title = '发送 (Ctrl+Enter)';
+    keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
+  }
+}
+function handleKey(e){
+  if(e.key==='Enter'){
+    if(enterToSend){
+      // Enter发送模式：Enter发送，Ctrl/Shift+Enter换行
+      if(!e.ctrlKey && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    } else {
+      // Ctrl+Enter发送模式：Ctrl/Shift+Enter发送，Enter换行
+      if(e.ctrlKey || e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+  }
+}
 
 function copyCode(btn) {
   navigator.clipboard.writeText(btn.closest('.code-block-wrap').querySelector('code').innerText)
@@ -3614,6 +3666,11 @@ async function toggleOpt(key) {
     requestAnimationFrame(() => {
       m.scrollTop = scrollPos;
     });
+  }
+  if(key==='enterSend'){
+    enterToSend=!enterToSend;
+    g('enter-send-toggle').classList.toggle('on',enterToSend);
+    updateInputHints();
   }
   saveSettings();
 }
