@@ -1,0 +1,16 @@
+# 用户数据目录
+data/
+
+# 旧的数据库文件
+chat.db
+chat.db-shm
+chat.db-wal
+
+# Node modules
+node_modules/
+
+# 环境变量
+.env
+
+# 日志
+*.log

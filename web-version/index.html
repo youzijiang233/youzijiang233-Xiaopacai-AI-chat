@@ -1,0 +1,4187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Xiaopacai AI Chat</title>
+<script src="lib/marked.min.js"></script>
+<script src="lib/highlight.min.js"></script>
+<link rel="stylesheet" href="lib/github-dark.min.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f14; --bg2:#13161e; --bg3:#1a1e29; --bg4:#21263a;
+  --border:#252b40; --border2:#3a4570;
+  --text:#e8eaf2; --text2:#9aa3c2; --text3:#5c6480;
+  --accent:#5b8dee; --accent2:#4070d4; --accent-glow:rgba(91,141,238,0.15);
+  --green:#4ecb8c; --red:#e05c6c; --yellow:#f5c542;
+  --rail:52px; --panel:292px;
+}
+:root[data-theme="light"] {
+  --bg:#f5f7fa; --bg2:#ffffff; --bg3:#e8ecf1; --bg4:#dfe3e8;
+  --border:#d0d7de; --border2:#a8b3c1;
+  --text:#1c2128; --text2:#57606a; --text3:#6e7781;
+  --accent:#0969da; --accent2:#0550ae; --accent-glow:rgba(9,105,218,0.1);
+  --green:#1a7f37; --red:#cf222e; --yellow:#bf8700;
+}
+/* 亮色模式代码高亮覆盖 */
+:root[data-theme="light"] .hljs{background:#f6f8fa;color:#24292e}
+:root[data-theme="light"] .hljs-comment,:root[data-theme="light"] .hljs-quote{color:#6a737d}
+:root[data-theme="light"] .hljs-keyword,:root[data-theme="light"] .hljs-selector-tag{color:#d73a49}
+:root[data-theme="light"] .hljs-string,:root[data-theme="light"] .hljs-doctag{color:#032f62}
+:root[data-theme="light"] .hljs-title,:root[data-theme="light"] .hljs-section,:root[data-theme="light"] .hljs-selector-id{color:#6f42c1}
+:root[data-theme="light"] .hljs-subst,:root[data-theme="light"] .hljs-type,:root[data-theme="light"] .hljs-class .hljs-title{color:#e36209}
+:root[data-theme="light"] .hljs-tag,:root[data-theme="light"] .hljs-name,:root[data-theme="light"] .hljs-attribute{color:#22863a}
+:root[data-theme="light"] .hljs-variable,:root[data-theme="light"] .hljs-template-variable{color:#e36209}
+:root[data-theme="light"] .hljs-number,:root[data-theme="light"] .hljs-literal{color:#005cc5}
+:root[data-theme="light"] .hljs-regexp,:root[data-theme="light"] .hljs-link{color:#032f62}
+:root[data-theme="light"] .hljs-meta{color:#005cc5}
+:root[data-theme="light"] .hljs-built_in,:root[data-theme="light"] .hljs-builtin-name{color:#005cc5}
+:root[data-theme="light"] .bubble-content code{color:#24292e}
+/* 亮色模式阴影优化 */
+:root[data-theme="light"] .bubble-content{box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+:root[data-theme="light"] .code-block-wrap{box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+:root[data-theme="light"] .rail{box-shadow:1px 0 0 rgba(0,0,0,0.06)}
+:root[data-theme="light"] .panel{box-shadow:-1px 0 0 rgba(0,0,0,0.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 0;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:10px;padding-left:calc(var(--rail) + 14px)}
+.logo{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;letter-spacing:-.3px}
+.logo-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.model-badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:3px 9px;border-radius:20px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.status-wrap{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status-dot.green{background:var(--green);box-shadow:0 0 5px var(--green)}
+.status-dot.yellow{background:var(--yellow);animation:pulse 1s infinite}
+.status-dot.red{background:var(--red);box-shadow:0 0 5px var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(224,92,108,.3)}
+.btn-danger:hover{background:rgba(224,92,108,.1)}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;background:transparent;color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.btn-icon:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-icon svg{width:16px;height:16px}
+
+/* MAIN */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ICON RAIL */
+.rail{width:var(--rail);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;z-index:10}
+.rail-btn{width:36px;height:36px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0}
+.rail-btn:hover{background:var(--bg3);color:var(--text)}
+.rail-btn.active{background:var(--accent-glow);color:var(--accent);border-color:rgba(91,141,238,.25)}
+.rail-btn svg{width:17px;height:17px}
+.rail-sep{width:28px;height:1px;background:var(--border);margin:4px 0}
+
+/* SLIDE PANEL */
+.sidebar-panel{width:var(--panel);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .22s cubic-bezier(.4,0,.2,1),opacity .22s}
+.sidebar-panel.hidden{width:0;opacity:0;border-right:none}
+.panel-inner{width:var(--panel);flex:1;display:flex;flex-direction:column;overflow:hidden}
+.panel-header{padding:14px 15px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text3)}
+.panel-close{width:22px;height:22px;border-radius:5px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.panel-close:hover{background:var(--bg3);color:var(--text)}
+.panel-body{flex:1;overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:0}
+.panel-body::-webkit-scrollbar{width:3px}
+.panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* COLLAPSIBLE */
+.collapse-head{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.collapse-head-left{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text3)}
+.collapse-head-left svg{width:13px;height:13px}
+.collapse-arrow{width:13px;height:13px;color:var(--text3);transition:transform .18s;flex-shrink:0}
+.collapse-arrow.open{transform:rotate(90deg)}
+.collapse-body{display:flex;flex-direction:column;gap:13px;padding-bottom:12px}
+.collapse-body.closed{display:none}
+
+/* FIELDS */
+.field{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:11.5px;font-weight:500;color:var(--text2);display:flex;align-items:center;justify-content:space-between}
+.field-hint{font-size:10.5px;color:var(--text3);font-weight:400}
+.input,.textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:7px;font-family:'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s;width:100%;outline:none}
+.input{padding:7px 10px;height:33px;font-size:12px}
+.input:focus,.textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.textarea{padding:8px 10px;resize:vertical;min-height:70px;line-height:1.5;font-size:12px}
+.textarea::-webkit-scrollbar{width:8px}
+.textarea::-webkit-scrollbar-track{background:var(--bg4);border-radius:4px}
+.textarea::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+.textarea::-webkit-scrollbar-thumb:hover{background:var(--accent);opacity:0.8}
+.mono-input{font-family:'JetBrains Mono',monospace;font-size:10.5px}
+
+/* MODEL DROPDOWN */
+.model-input-wrapper{position:relative;display:flex;align-items:center;gap:0}
+.model-input-wrapper .input{flex:1;border-top-right-radius:0;border-bottom-right-radius:0;border-right:none}
+.model-dropdown-btn{height:33px;width:33px;background:var(--bg3);border:1px solid var(--border);border-left:none;border-top-right-radius:7px;border-bottom-right-radius:7px;color:var(--text3);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.model-dropdown-btn:hover{background:var(--bg4);color:var(--accent)}
+.model-dropdown-btn svg{width:12px;height:12px;transition:transform .15s}
+.model-dropdown-btn.open svg{transform:rotate(180deg)}
+.model-dropdown-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:7px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:1000;display:none;max-height:300px;overflow:hidden;flex-direction:column}
+.model-dropdown-menu.show{display:flex}
+.model-refresh-btn{padding:10px 12px;background:var(--bg3);border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;flex-shrink:0}
+.model-refresh-btn:hover{background:var(--bg4);color:var(--accent)}
+.model-refresh-btn.loading{opacity:0.6;cursor:wait}
+.refresh-icon{font-size:14px;display:inline-block;transition:transform .3s}
+.model-refresh-btn.loading .refresh-icon{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.model-list{overflow-y:auto;max-height:250px;flex:1}
+.model-list::-webkit-scrollbar{width:4px}
+.model-list::-webkit-scrollbar-track{background:transparent}
+.model-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.model-list-empty,.model-list-error{padding:20px;text-align:center;color:var(--text3);font-size:11px}
+.model-list-error{color:#e74c3c}
+.model-item,.provider-item{padding:8px 12px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text);border-bottom:1px solid var(--border);transition:background .15s}
+.model-item:last-child,.provider-item:last-child{border-bottom:none}
+.model-item:hover,.provider-item:hover{background:var(--bg4);color:var(--accent)}
+
+/* PROVIDER SECTION */
+.model-section-title{padding:6px 12px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+
+/* SLIDER */
+.slider-row{display:flex;align-items:center;gap:8px}
+.slider{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:2px;background:var(--bg4);outline:none;cursor:pointer}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px rgba(91,141,238,.4);cursor:pointer;transition:transform .1s}
+.slider::-webkit-slider-thumb:hover{transform:scale(1.25)}
+.slider-val{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);min-width:40px;text-align:right}
+
+/* RESET PARAMS BUTTON */
+.reset-params-btn{width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.reset-params-btn:hover{background:var(--bg4);border-color:var(--accent);color:var(--accent)}
+.reset-params-btn svg{flex-shrink:0}
+
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 11px}
+.toggle-info{display:flex;flex-direction:column;gap:2px}
+.toggle-name{font-size:12.5px;font-weight:500;color:var(--text)}
+.toggle-desc{font-size:10.5px;color:var(--text3)}
+.toggle{position:relative;width:34px;height:18px;background:var(--bg4);border-radius:9px;cursor:pointer;flex-shrink:0;border:1px solid var(--border);transition:background .2s}
+.toggle.on{background:var(--accent);border-color:var(--accent)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{transform:translateX(16px)}
+
+.divider{height:1px;background:var(--border);margin:5px 0}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent)}
+
+/* CONV LIST */
+.new-chat-btn-inline{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;background:var(--accent);color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;margin-left:8px;margin-right:auto}
+.new-chat-btn-inline:hover{background:var(--accent2)}
+.new-chat-btn-inline svg{width:14px;height:14px}
+.conv-list{flex:1;overflow-y:auto;padding:7px 9px;display:flex;flex-direction:column;gap:3px}
+.conv-list::-webkit-scrollbar{width:3px}
+.conv-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.conv-empty{text-align:center;color:var(--text3);font-size:12px;padding:20px 10px}
+.conv-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .14s;position:relative}
+.conv-item:hover{background:var(--bg3);border-color:var(--border)}
+.conv-item.active{background:var(--accent-glow);border-color:rgba(91,141,238,.3)}
+.conv-icon{width:27px;height:27px;border-radius:7px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.conv-icon svg{width:13px;height:13px;color:var(--text3)}
+.conv-info{flex:1;min-width:0}
+.conv-title{font-size:12.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-meta{font-size:10.5px;color:var(--text3);margin-top:1px}
+.conv-del{width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text3);display:none;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
+.conv-item:hover .conv-del{display:flex}
+.conv-del:hover{background:rgba(224,92,108,.15);color:var(--red)}
+.conv-actions{display:none;align-items:center;gap:4px;flex-shrink:0}
+.conv-item:hover .conv-actions{display:flex}
+.conv-action-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+.conv-action-btn:hover{background:var(--bg4);color:var(--text)}
+
+/* CHAT AREA */
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.messages{flex:1;overflow-y:auto;padding:18px 0;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* message-row: ~1 char height (≈1em) vertical spacing */
+.message-row{padding:7px 64px 7px 26px;display:flex;gap:12px;max-width:1080px;margin:0 auto;width:100%;animation:fadeUp .18s ease;align-items:flex-start;margin-bottom:12px}
+.message-row.user-row{flex-direction:row-reverse;padding-right:26px;padding-left:calc(26px + 29px + 12px)}
+.message-row.user-row .bubble{display:flex;flex-direction:column;align-items:flex-end}
+.message-row.user-row .bubble-name{text-align:right}
+.message-row.user-row .bubble-content.user-msg{max-width:56%}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+.avatar{width:29px;height:29px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:-12px}
+.avatar.user{background:var(--bg4);color:var(--text2);border:1px solid var(--border2)}
+.avatar.assistant{background:linear-gradient(135deg,rgba(91,141,238,.13),rgba(78,203,140,.1));color:var(--accent);border:1px solid rgba(91,141,238,.22)}
+.bubble{flex:1;min-width:0}
+.bubble-name{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;letter-spacing:.3px}
+.bubble-name.user-name{color:var(--text2)}
+.bubble-name.ai-name{color:var(--accent)}
+.bubble-content{font-size:14px;line-height:1.7;color:var(--text)}
+.bubble-content.user-msg{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;white-space:pre-line;word-break:break-word}
+.bubble-content.ai-msg{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;word-break:break-word}
+
+/* BUBBLE ACTIONS */
+.bubble-actions{display:flex;gap:2px;margin-top:5px;opacity:0;visibility:hidden;min-height:24px}
+.message-row:hover .bubble-actions{opacity:1;visibility:visible}
+.bubble-action-btn{width:24px;height:24px;border-radius:5px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.bubble-action-btn:hover{background:var(--bg3);color:var(--text)}
+.bubble-action-btn.del:hover{background:rgba(224,92,108,.15);color:var(--red)}
+.bubble-action-btn svg{width:13px;height:13px}
+
+/* SLIDER RESET BUTTON */
+.slider-reset-btn{position:absolute;top:8px;right:11px;width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;padding:0}
+.slider-reset-btn:hover{background:var(--bg4);color:var(--text)}
+.slider-reset-btn svg{width:11px;height:11px}
+
+/* EDIT MODE */
+.bubble-edit-wrap{display:flex;flex-direction:column;gap:8px}
+.bubble-edit-textarea{background:var(--bg3);border:1px solid var(--accent);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:9px 14px;resize:none;min-height:80px;max-height:400px;outline:none;width:100%;overflow-y:auto}
+.bubble-edit-textarea::-webkit-scrollbar{width:8px}
+.bubble-edit-textarea::-webkit-scrollbar-track{background:var(--bg4);border-radius:4px}
+.bubble-edit-textarea::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+.bubble-edit-textarea::-webkit-scrollbar-thumb:hover{background:var(--accent);opacity:0.8}
+.bubble-edit-textarea:focus{box-shadow:0 0 0 3px var(--accent-glow)}
+.bubble-edit-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bubble-edit-info{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3)}
+.bubble-edit-char-count{font-family:'JetBrains Mono',monospace}
+.bubble-edit-hint{opacity:0.7}
+.bubble-edit-btns{display:flex;gap:6px}
+.bubble-edit-btn{padding:5px 14px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.bubble-edit-btn.cancel{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.bubble-edit-btn.cancel:hover{background:var(--bg3);color:var(--text)}
+.bubble-edit-btn.save{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+.bubble-edit-btn.save:hover{background:var(--accent2);border-color:var(--accent2)}
+.bubble-edit-btn.regen{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+.bubble-edit-btn.regen:hover{background:var(--accent2);border-color:var(--accent2)}
+
+/* ZOOM INDICATOR */
+.zoom-indicator{position:fixed;top:20px;right:20px;background:var(--bg2);border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:10000;opacity:0;pointer-events:none;transition:opacity .2s}
+.zoom-indicator.show{opacity:1}
+
+/* Markdown */
+.bubble-content h1,.bubble-content h2,.bubble-content h3{color:var(--text);font-weight:600;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.bubble-content h1{font-size:17px}.bubble-content h2{font-size:15px}.bubble-content h3{font-size:14px;border:none}
+.bubble-content p{margin:5px 0}
+.bubble-content ul,.bubble-content ol{margin:6px 0;padding-left:20px}
+.bubble-content li{margin:3px 0}
+.bubble-content code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg4);border:1px solid var(--border);padding:1px 5px;border-radius:4px;color:#a8d8a8}
+.bubble-content pre{margin:8px 0}
+.bubble-content pre code{background:transparent;border:none;padding:0;border-radius:0;font-size:12.5px;line-height:1.6;color:inherit}
+.code-block-wrap{margin:8px 0;border-radius:9px;border:1px solid var(--border);overflow:hidden}
+.code-header{display:flex;align-items:center;justify-content:space-between;background:var(--bg4);padding:6px 13px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.copy-btn{cursor:pointer;padding:2px 7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:4px;font-size:10.5px;transition:all .15s}
+.copy-btn:hover{color:var(--text);border-color:var(--border2)}
+.bubble-content .hljs{padding:12px 14px}
+.bubble-content blockquote{border-left:3px solid var(--accent);padding:4px 12px;color:var(--text2);background:var(--bg3);border-radius:0 6px 6px 0;margin:6px 0}
+.bubble-content table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}
+.bubble-content th{background:var(--bg3);border:1px solid var(--border);padding:6px 11px;text-align:left;font-weight:600;color:var(--text2)}
+.bubble-content td{border:1px solid var(--border);padding:6px 11px}
+.bubble-content a{color:var(--accent);text-decoration:none}
+.bubble-content a:hover{text-decoration:underline}
+.bubble-content strong{color:var(--text);font-weight:600}
+
+.typing-cursor{display:inline-block;width:2px;height:14px;background:var(--accent);border-radius:1px;animation:blink .65s infinite;vertical-align:middle;margin-left:2px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text3)}
+.empty-icon{font-size:34px;opacity:.2}
+.empty-title{font-size:15px;font-weight:500;color:var(--text2)}
+.empty-sub{font-size:12.5px}
+.error-bubble{display:flex;align-items:flex-start;gap:8px;background:rgba(224,92,108,.07);border:1px solid rgba(224,92,108,.22);border-radius:8px;padding:9px 13px;color:var(--red);font-size:13px;line-height:1.5}
+
+/* INPUT BAR */
+.input-bar-outer{background:var(--bg);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.input-bar{padding:12px 24px 15px;max-width:1080px;margin:0 auto;width:100%}
+.input-wrap{display:flex;gap:9px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:9px 15px;transition:border-color .15s,box-shadow .15s}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+#user-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;resize:none;max-height:180px;overflow-y:auto;padding:0}
+#user-input::placeholder{color:var(--text3)}
+#user-input::-webkit-scrollbar{width:3px}
+#user-input::-webkit-scrollbar-thumb{background:var(--border2)}
+.send-btn{width:36px;height:36px;border-radius:9px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s ease;position:relative}
+.send-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(var(--accent-rgb),.3)}
+.send-btn:active{transform:scale(.95) translateY(0)}
+.send-btn.stop-mode{background:linear-gradient(135deg,#e05c6c 0%,#c94455 100%);box-shadow:0 4px 16px rgba(224,92,108,.35),0 0 0 0 rgba(224,92,108,.4);animation:pulse-stop 2s ease-in-out infinite}
+.send-btn.stop-mode:hover{background:linear-gradient(135deg,#c94455 0%,#b33a4a 100%);transform:translateY(-1px);box-shadow:0 6px 20px rgba(224,92,108,.45)}
+.send-btn.stop-mode:active{transform:scale(.95) translateY(0)}
+.send-btn svg{width:15px;height:15px;transition:transform .2s ease}
+@keyframes pulse-stop{0%,100%{box-shadow:0 4px 16px rgba(224,92,108,.35),0 0 0 0 rgba(224,92,108,.4)}50%{box-shadow:0 4px 20px rgba(224,92,108,.45),0 0 0 8px rgba(224,92,108,0)}}
+.input-footer{display:flex;justify-content:space-between;align-items:center;padding:5px 4px 0;font-size:11px;color:var(--text3)}
+.key-hint{display:flex;gap:5px;align-items:center}
+kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px}
+.char-count{font-family:'JetBrains Mono',monospace}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 16px;border-radius:8px;font-size:13px;opacity:0;transition:all .2s;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Accessibility */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+
+/* Panel Styles */
+#panel-settings, #panel-history{display:none;flex-direction:column;height:100%}
+#panel-settings.active, #panel-history.active{display:flex}
+
+/* Field Hint Success */
+.field-hint.success{color:var(--green);margin-top:3px}
+
+/* Stop Icon */
+#stop-icon{display:none}
+#stop-icon.visible{display:inline-block}
+
+/* Plain Text */
+.plain-text{white-space:pre-wrap}
+
+/* Stop Marker */
+.stop-marker{font-size:11px;color:var(--text3);margin-left:8px}
+
+/* Utility Classes */
+.hidden{display:none !important}
+
+/* PRESET DROPDOWN */
+.preset-selector{position:relative}
+.preset-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:7px 10px;height:33px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color .15s;text-align:left}
+.preset-btn:hover,.preset-btn.open{border-color:var(--accent)}
+.preset-btn svg{width:12px;height:12px;color:var(--text3);transition:transform .15s;flex-shrink:0}
+.preset-btn.open svg{transform:rotate(180deg)}
+.preset-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;z-index:100;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.preset-item{display:flex;align-items:center;padding:7px 10px;cursor:pointer;gap:6px;transition:background .12s}
+.preset-item:hover{background:var(--bg4)}
+.preset-item.active{background:var(--accent-glow)}
+.preset-item-name{flex:1;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.preset-item-name-input{flex:1;background:var(--bg4);border:1px solid var(--accent);border-radius:4px;color:var(--text);font-size:12px;padding:1px 5px;outline:none;font-family:'DM Sans',sans-serif;min-width:0}
+.preset-item-actions{display:none;gap:3px;flex-shrink:0}
+.preset-item:hover .preset-item-actions{display:flex}
+.preset-action-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.preset-action-btn:hover{background:var(--bg3);color:var(--text)}
+.preset-action-btn.del:hover{background:rgba(224,92,108,.15);color:var(--red)}
+.preset-action-btn svg{width:11px;height:11px}
+.preset-divider{height:1px;background:var(--border);margin:3px 0}
+.preset-new-btn{display:flex;align-items:center;gap:6px;padding:7px 10px;cursor:pointer;color:var(--accent);font-size:12px;transition:background .12s}
+.preset-new-btn:hover{background:var(--bg4)}
+.preset-new-btn svg{width:13px;height:13px}
+
+/* BRANCH MANAGER */
+.branch-manager{display:flex;align-items:center;gap:0px;padding:0;background:transparent;border:none;font-size:11px;height:24px;opacity:0;visibility:hidden}
+.message-row:hover .branch-manager{opacity:1;visibility:visible}
+.branch-btn{width:24px;height:24px;border-radius:0;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;font-size:16px;font-weight:400;padding:0;position:relative;z-index:2;transform:scaleY(1.25)}
+.branch-btn:hover:not(:disabled){color:var(--text)}
+.branch-btn:disabled{opacity:0.3;cursor:not-allowed}
+.branch-indicator{color:var(--text3);font-family:'DM Sans',sans-serif;font-size:13px;min-width:40px;text-align:center;-webkit-user-select:none;user-select:none;padding:0 4px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;margin:0 -14px}
+
+/* 移动端适配：防止输入框被浏览器工具栏遮挡 */
+@media (max-width: 768px) {
+  .input-bar-outer {
+    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+  }
+  .input-bar {
+    padding: 10px 16px 12px;
+  }
+
+  /* 隐藏左侧边栏 */
+  .rail {
+    display: none;
+  }
+
+  /* 调整 topbar 左侧内边距（移除 rail 宽度） */
+  .topbar-left {
+    padding-left: 14px;
+  }
+
+  /* 在 topbar 中显示边栏按钮 */
+  .rail-btn-mobile {
+    display: flex !important;
+  }
+
+  /* 调整 logo 字体大小 */
+  .logo {
+    font-size: 14px;
+  }
+
+  /* 隐藏模型徽章（空间不够） */
+  .model-badge {
+    display: none;
+  }
+
+  /* 消息布局优化：头像和气泡垂直排列，名称在头像侧面 */
+  .message-row {
+    padding: 7px 16px;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  .message-row.user-row {
+    padding: 7px 16px;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-direction: column;
+    align-items: flex-end;
+    position: relative;
+  }
+
+  /* 头像调整 */
+  .message-row > .avatar {
+    margin-top: 0;
+  }
+
+  /* 名称定位在头像侧面，距离头像底部4px */
+  .message-row .bubble-name {
+    position: absolute;
+    top: calc(7px + 29px - 11px - 4px);
+    left: calc(16px + 29px + 8px);
+    margin: 0;
+  }
+
+  .message-row.user-row .bubble-name {
+    left: auto;
+    right: calc(16px + 29px + 8px);
+  }
+
+  /* AI 消息气泡左对齐 */
+  .message-row .bubble-content.ai-msg {
+    max-width: calc(100% - 32px);
+  }
+
+  /* 用户消息气泡右对齐 */
+  .message-row.user-row .bubble-content.user-msg {
+    max-width: calc(100% - 32px);
+  }
+}
+
+/* 桌面端隐藏移动端按钮 */
+.rail-btn-mobile {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <!-- 移动端边栏按钮 -->
+    <button class="rail-btn rail-btn-mobile" id="rail-settings-mobile" onclick="switchPanel('settings')" title="参数配置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="rail-btn rail-btn-mobile" id="rail-history-mobile" onclick="switchPanel('history')" title="对话列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <div class="logo"><div class="logo-dot"></div>Xiaopacai AI Chat</div>
+    <div class="model-badge" id="model-badge">deepseek/deepseek-chat-v3.1</div>
+  </div>
+  <div class="topbar-right">
+    <button type="button" class="btn-icon" id="theme-toggle" onclick="toggleTheme()" title="切换主题">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+    <div class="status-wrap">
+      <span class="status-dot green" id="status-dot"></span>
+      <span id="status-text">就绪</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- 缩放提示 -->
+  <div class="zoom-indicator" id="zoom-indicator">100%</div>
+
+  <!-- Icon Rail -->
+  <div class="rail">
+    <button class="rail-btn active" id="rail-settings" onclick="switchPanel('settings')" title="参数配置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="rail-btn" id="rail-history" onclick="switchPanel('history')" title="对话列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <div class="rail-sep"></div>
+  </div>
+
+  <!-- Slide Panel -->
+  <div class="sidebar-panel" id="sidebar-panel">
+    <div class="panel-inner">
+
+      <!-- Settings Panel -->
+      <div id="panel-settings" class="active">
+        <div class="panel-header">
+          <span class="panel-title">参数配置</span>
+          <button class="panel-close" onclick="switchPanel(null)" aria-label="关闭面板">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="panel-body">
+
+          <!-- API -->
+          <div class="collapse-head" onclick="toggleCollapse('api')">
+            <div class="collapse-head-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              API 设置
+            </div>
+            <svg class="collapse-arrow open" id="arrow-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapse-body" id="body-api">
+            <div class="field">
+              <label class="field-label">API 预设</label>
+              <div class="preset-selector" id="preset-selector">
+                <button class="preset-btn" id="preset-btn" onclick="togglePresetDropdown()" type="button">
+                  <span id="preset-btn-name">openrouter</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="preset-dropdown hidden" id="preset-dropdown"></div>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="api-url">API 端点</label>
+              <input class="input mono-input" id="api-url" type="text" oninput="onPresetFieldChange()" aria-label="API 端点地址">
+            </div>
+            <div class="field">
+              <label class="field-label" for="api-key">API Key</label>
+              <input class="input mono-input" id="api-key" type="text" placeholder="输入你的 API Key" oninput="handleApiKeyInput()" aria-label="API 密钥">
+            </div>
+            <div class="field">
+              <label class="field-label" for="model-name">模型名称</label>
+              <div class="model-input-wrapper">
+                <input class="input mono-input" id="model-name" type="text" oninput="document.getElementById('model-badge').textContent=this.value;onPresetFieldChange()" aria-label="AI 模型名称">
+                <button type="button" class="model-dropdown-btn" id="model-dropdown-btn" onclick="toggleModelDropdown(event)" aria-label="选择模型">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="model-dropdown-menu" id="model-dropdown">
+                  <button type="button" class="model-refresh-btn" onclick="refreshModels(event)">
+                    <span class="refresh-icon">↻</span> 刷新模型列表
+                  </button>
+                  <div class="model-list" id="model-list">
+                    <div class="model-list-empty">点击刷新获取模型列表</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field" id="provider-field" style="display: none;">
+              <label class="field-label" for="provider-name">提供商（可选）</label>
+              <div class="model-input-wrapper">
+                <input class="input mono-input" id="provider-name" type="text" placeholder="留空使用默认路由" oninput="onProviderInput()" aria-label="提供商名称">
+                <button type="button" class="model-dropdown-btn" id="provider-dropdown-btn" onclick="toggleProviderDropdown(event)" aria-label="选择提供商">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="model-dropdown-menu" id="provider-dropdown">
+                  <div class="model-list" id="provider-list">
+                    <div class="provider-item" onclick="selectProvider('')">留空（默认路由）</div>
+                    <div class="provider-item" onclick="selectProvider('openai')">OpenAI</div>
+                    <div class="provider-item" onclick="selectProvider('anthropic')">Anthropic</div>
+                    <div class="provider-item" onclick="selectProvider('google')">Google</div>
+                    <div class="provider-item" onclick="selectProvider('deepseek')">DeepSeek</div>
+                    <div class="provider-item" onclick="selectProvider('together')">Together</div>
+                    <div class="provider-item" onclick="selectProvider('deepinfra')">DeepInfra</div>
+                    <div class="provider-item" onclick="selectProvider('fireworks')">Fireworks</div>
+                    <div class="provider-item" onclick="selectProvider('lepton')">Lepton</div>
+                    <div class="provider-item" onclick="selectProvider('novita')">Novita</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="api-format">API 格式</label>
+              <div class="model-input-wrapper">
+                <input class="input" id="api-format" type="text" readonly onclick="toggleFormatDropdown(event)" aria-label="API 格式" style="cursor: pointer;">
+                <button type="button" class="model-dropdown-btn" id="format-dropdown-btn" onclick="toggleFormatDropdown(event)" aria-label="选择格式">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="model-dropdown-menu" id="format-dropdown">
+                  <div class="model-list">
+                    <div class="provider-item" onclick="selectFormat('openai')">OpenAI 兼容（默认）</div>
+                    <div class="provider-item" onclick="selectFormat('claude')">Anthropic Claude</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Gen Params -->
+          <div class="collapse-head" onclick="toggleCollapse('gen')">
+            <div class="collapse-head-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="17" y2="18"/></svg>
+              生成参数
+            </div>
+            <svg class="collapse-arrow open" id="arrow-gen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapse-body" id="body-gen">
+            <div class="field">
+              <label class="field-label" for="s-max-tokens">Max Tokens <span class="field-hint">（最大输出长度，0 = 不限）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-max-tokens" type="range" min="0" max="8192" step="128" value="0" oninput="syncParam(this,'max-tokens-val',v=>v==0?'∞':v)" aria-label="最大令牌数">
+                <span class="slider-val" id="max-tokens-val">∞</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-chat-memory">Chat Memory <span class="field-hint">（上下文轮数，0 = 不限）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-chat-memory" type="range" min="0" max="50" step="1" value="10" oninput="syncParam(this,'chat-memory-val',v=>v==0?'∞':v)" aria-label="上下文轮数">
+                <span class="slider-val" id="chat-memory-val">10</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-temp">Temperature <span class="field-hint">（随机性，越高越发散）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-temp" type="range" min="0" max="2" step="0.001" value="1" oninput="syncParam(this,'temp-val',v=>parseFloat(v).toFixed(3))" aria-label="温度参数">
+                <span class="slider-val" id="temp-val">1.000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-top-p">Top P <span class="field-hint">（核采样，过滤低概率词）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-top-p" type="range" min="0" max="1" step="0.001" value="1" oninput="syncParam(this,'top-p-val',v=>parseFloat(v).toFixed(3))" aria-label="Top P 参数">
+                <span class="slider-val" id="top-p-val">1.000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-top-k">Top K <span class="field-hint">（候选词数量，0 = 不限）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-top-k" type="range" min="0" max="200" step="1" value="0" oninput="syncParam(this,'top-k-val',v=>parseInt(v))" aria-label="Top K 参数">
+                <span class="slider-val" id="top-k-val">0</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-freq-pen">Frequency Penalty <span class="field-hint">（降低重复词频率）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-freq-pen" type="range" min="-2" max="2" step="0.001" value="0" oninput="syncParam(this,'freq-pen-val',v=>parseFloat(v).toFixed(3))" aria-label="频率惩罚">
+                <span class="slider-val" id="freq-pen-val">0.000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-pres-pen">Presence Penalty <span class="field-hint">（鼓励引入新话题）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-pres-pen" type="range" min="-2" max="2" step="0.001" value="0" oninput="syncParam(this,'pres-pen-val',v=>parseFloat(v).toFixed(3))" aria-label="存在惩罚">
+                <span class="slider-val" id="pres-pen-val">0.000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-rep-pen">Repetition Penalty <span class="field-hint">（惩罚重复内容，&gt;1 更严）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-rep-pen" type="range" min="0.5" max="2" step="0.001" value="1" oninput="syncParam(this,'rep-pen-val',v=>parseFloat(v).toFixed(3))" aria-label="重复惩罚">
+                <span class="slider-val" id="rep-pen-val">1.000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-min-p">Min P <span class="field-hint">（最低概率阈值过滤）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-min-p" type="range" min="0" max="1" step="0.001" value="0" oninput="syncParam(this,'min-p-val',v=>parseFloat(v).toFixed(3))" aria-label="Min P 参数">
+                <span class="slider-val" id="min-p-val">0.000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="s-top-a">Top A <span class="field-hint">（自适应采样阈值）</span></label>
+              <div class="slider-row">
+                <input class="slider" id="s-top-a" type="range" min="0" max="1" step="0.001" value="0" oninput="syncParam(this,'top-a-val',v=>parseFloat(v).toFixed(3))" aria-label="Top A 参数">
+                <span class="slider-val" id="top-a-val">0.000</span>
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px">
+              <button class="reset-params-btn" onclick="resetGenerationParams()" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                重置所有参数
+              </button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Options -->
+          <div class="collapse-head" onclick="toggleCollapse('opts')">
+            <div class="collapse-head-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              功能选项
+            </div>
+            <svg class="collapse-arrow open" id="arrow-opts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapse-body" id="body-opts">
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">流式传输</div><div class="toggle-desc">逐字实时输出</div></div>
+              <div class="toggle on" id="stream-toggle" onclick="toggleOpt('stream')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Markdown 渲染</div><div class="toggle-desc">格式化 AI 回复</div></div>
+              <div class="toggle on" id="md-toggle" onclick="toggleOpt('md')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">代码高亮</div><div class="toggle-desc">语法着色</div></div>
+              <div class="toggle on" id="hl-toggle" onclick="toggleOpt('hl')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Enter 发送</div><div class="toggle-desc">开启：Enter 发送；关闭：Ctrl+Enter 发送</div></div>
+              <div class="toggle on" id="enter-send-toggle" onclick="toggleOpt('enterSend')"></div>
+            </div>
+            <div class="toggle-row" style="flex-direction:column;align-items:stretch;gap:8px;position:relative">
+              <button type="button" class="slider-reset-btn" onclick="resetFontSize()" title="重置字体大小">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+              </button>
+              <div class="toggle-info"><div class="toggle-name">消息字体大小</div><div class="toggle-desc">调节对话消息的字体大小</div></div>
+              <div class="slider-row">
+                <input type="range" class="slider" id="font-size-slider" min="12" max="24" step="1" value="14" oninput="updateFontSize(this.value)">
+                <span class="slider-val" id="font-size-val">14px</span>
+              </div>
+            </div>
+            <div class="toggle-row" style="flex-direction:column;align-items:stretch;gap:8px;position:relative">
+              <button type="button" class="slider-reset-btn" onclick="resetMessageWidth()" title="重置消息宽度">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+              </button>
+              <div class="toggle-info"><div class="toggle-name">消息区域宽度</div><div class="toggle-desc">调节消息区域的最大宽度</div></div>
+              <div class="slider-row">
+                <input type="range" class="slider" id="message-width-slider" min="600" max="1800" step="20" value="1080" oninput="updateMessageWidthPreview(this.value)" onchange="updateMessageWidthFinal(this.value)">
+                <span class="slider-val" id="message-width-val">1080px</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- System Prompt -->
+          <div class="collapse-head" onclick="toggleCollapse('sys')">
+            <div class="collapse-head-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              系统提示词
+            </div>
+            <svg class="collapse-arrow open" id="arrow-sys" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapse-body" id="body-sys">
+            <label for="system-prompt" class="sr-only">系统提示词</label>
+            <textarea class="textarea" id="system-prompt" rows="5"
+              placeholder="设定 AI 的角色或行为规则…" oninput="onSystemPromptChange()" aria-label="系统提示词"></textarea>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="stats-grid">
+            <div class="stat-box"><div class="stat-label">消息数</div><div class="stat-val" id="msg-count">0</div></div>
+            <div class="stat-box"><div class="stat-label">总字符</div><div class="stat-val" id="char-total">0</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Panel -->
+      <div id="panel-history">
+        <div class="panel-header">
+          <span class="panel-title">对话列表</span>
+          <button class="new-chat-btn-inline" onclick="newChat()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新建
+          </button>
+          <button class="panel-close" onclick="switchPanel(null)" aria-label="关闭面板">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="conv-list" id="conv-list">
+          <div class="conv-empty">暂无历史对话</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">✦</div>
+        <div class="empty-title">开始对话</div>
+        <div class="empty-sub">在下方输入你的问题</div>
+      </div>
+    </div>
+    <div class="input-bar-outer">
+      <div class="input-bar">
+        <div class="input-wrap">
+          <textarea id="user-input" rows="1" placeholder="输入消息，Ctrl+Enter 发送…" oninput="autoResize(this);updateCharCount()" onkeydown="handleKey(event)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="handleSendBtn()" title="发送 (Ctrl+Enter)">
+            <svg id="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            <svg id="stop-icon" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-footer">
+          <div class="key-hint" id="key-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行</div>
+          <span class="char-count" id="char-count">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ STATE ══
+let currentConvId = null;
+let isGenerating = false;
+let streamEnabled = true;
+let mdEnabled = true;
+let hlEnabled = true;
+let enterToSend = true; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
+let messageFontSize = 14; // 消息字体大小（px）
+let messageWidth = 1080; // 消息区域宽度（px）
+let activePanel = 'settings';
+let messageWidthAdjustData = null; // 消息宽度调节时的位置记录
+
+// ══ CONCURRENT REQUEST CONTROL ══
+const conversationControllers = new Map(); // convId -> AbortController
+
+// ══ ID GENERATORS ══
+function generateUniqueId() {
+  return 'c' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function generateId16() {
+  const timestamp = Date.now().toString(); // 13位时间戳
+  const random = Math.random().toString(36).substring(2, 5); // 3位随机字符
+  return timestamp + random; // 总共16位
+}
+
+// ══ TREE STRUCTURE HELPERS ══
+/**
+ * 查找指定父消息的分支节点
+ */
+function findBranchNodeByParent(conv, parentId) {
+  if (!conv || !conv.branchNodes) return null;
+  for (const nodeId in conv.branchNodes) {
+    const node = conv.branchNodes[nodeId];
+    if (node.parentMessageId === parentId) {
+      return node;
+    }
+  }
+  return null;
+}
+
+/**
+ * 构建渲染路径（从根消息到叶子节点）
+ * 返回: { messages: Message[], branchPoints: Map<messageId, BranchNode> }
+ */
+function buildRenderPath(conv) {
+  const path = [];
+  const branchPoints = new Map();
+
+  if (!conv || !conv.messages || !conv.rootMessageId) {
+    return { messages: path, branchPoints };
+  }
+
+  let currentId = conv.rootMessageId;
+
+  while (currentId) {
+    // 检查当前ID是消息还是分支节点
+    const message = conv.messages[currentId];
+    const branchNode = conv.branchNodes[currentId];
+
+    if (message) {
+      // 是消息
+      path.push(message);
+
+      if (message.children && message.children.length === 1) {
+        currentId = message.children[0];  // 可能是消息ID或分支节点ID
+      } else if (!message.children || message.children.length === 0) {
+        // 叶子节点，结束
+        break;
+      } else {
+        // 多个子节点（数据异常）
+        console.error('Multiple children in message:', currentId);
+        break;
+      }
+    } else if (branchNode) {
+      // 是分支节点
+      branchPoints.set(branchNode.activeChildId, branchNode);
+      currentId = branchNode.activeChildId;  // 跳转到激活的分支
+    } else {
+      // 既不是消息也不是分支节点，结束
+      break;
+    }
+  }
+
+  return { messages: path, branchPoints };
+}
+
+/**
+ * 验证对话数据的一致性
+ */
+function validateConversation(conv) {
+  const errors = [];
+
+  if (!conv) return ['Conversation is null'];
+  if (!conv.messages) return ['Messages object is missing'];
+  if (!conv.rootMessageId) return ['Root message ID is missing'];
+
+  // 检查根消息存在
+  if (!conv.messages[conv.rootMessageId]) {
+    errors.push('Root message not found: ' + conv.rootMessageId);
+  }
+
+  // 检查所有消息的父子关系
+  for (const msgId in conv.messages) {
+    const msg = conv.messages[msgId];
+
+    // 检查父消息存在
+    if (msg.parentId && !conv.messages[msg.parentId]) {
+      errors.push(`Message ${msgId}: parent ${msg.parentId} not found`);
+    }
+
+    // 检查子消息存在
+    if (msg.children) {
+      msg.children.forEach(childId => {
+        if (!conv.messages[childId]) {
+          errors.push(`Message ${msgId}: child ${childId} not found`);
+        }
+      });
+    }
+  }
+
+  // 检查分支节点
+  if (conv.branchNodes) {
+    for (const nodeId in conv.branchNodes) {
+      const node = conv.branchNodes[nodeId];
+
+      // 检查父消息存在
+      if (!conv.messages[node.parentMessageId]) {
+        errors.push(`BranchNode ${nodeId}: parent ${node.parentMessageId} not found`);
+      }
+
+      // 检查分支消息存在
+      if (node.branches) {
+        node.branches.forEach(branch => {
+          if (!conv.messages[branch.firstMessageId]) {
+            errors.push(`BranchNode ${nodeId}: branch message ${branch.firstMessageId} not found`);
+          }
+        });
+      }
+
+      // 检查activeChildId存在
+      if (!conv.messages[node.activeChildId]) {
+        errors.push(`BranchNode ${nodeId}: activeChild ${node.activeChildId} not found`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+// ══ API PRESETS ══
+let apiPresets = [];
+let activePresetId = null;
+let fullApiKeys = {}; // { presetId: plaintext key }
+
+function getDefaultPresets() {
+  return [{ id: 'preset_default', name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'deepseek/deepseek-chat-v3.1', format: 'openai', provider: '' }];
+}
+
+function getActivePreset() {
+  return apiPresets.find(p => p.id === activePresetId) || apiPresets[0];
+}
+
+function renderPresetDropdown() {
+  const dd = g('preset-dropdown');
+  dd.innerHTML = apiPresets.map(p => `<div class="preset-item${p.id===activePresetId?' active':''}" onclick="selectPreset('${p.id}')">
+      <span class="preset-item-name" id="pname-${p.id}">${escapeHtml(p.name)}</span>
+      <div class="preset-item-actions">
+        <button class="preset-action-btn" onclick="startRenamePreset(event,'${p.id}')" title="重命名" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="preset-action-btn del" onclick="deletePreset(event,'${p.id}')" title="删除" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>`).join('') +
+    `<div class="preset-divider"></div><div class="preset-new-btn" onclick="addNewPreset()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建预设</div>`;
+}
+
+function togglePresetDropdown() {
+  const dd = g('preset-dropdown'), btn = g('preset-btn');
+  const isOpen = !dd.classList.contains('hidden');
+  if (isOpen) { dd.classList.add('hidden'); btn.classList.remove('open'); }
+  else { renderPresetDropdown(); dd.classList.remove('hidden'); btn.classList.add('open'); }
+}
+
+function selectPreset(id) {
+  activePresetId = id;
+  const p = getActivePreset();
+  g('preset-btn-name').textContent = p.name;
+  g('preset-dropdown').classList.add('hidden');
+  g('preset-btn').classList.remove('open');
+  g('api-url').value = p.url;
+  g('model-name').value = p.model;
+  g('model-badge').textContent = p.model;
+
+  // 显示格式名称
+  const formatNames = {
+    'openai': 'OpenAI 兼容（默认）',
+    'claude': 'Anthropic Claude'
+  };
+  g('api-format').value = formatNames[p.format] || formatNames['openai'];
+
+  // 加载提供商字段
+  g('provider-name').value = p.provider || '';
+
+  // 检查是否为 OpenRouter，显示/隐藏提供商字段
+  const isOpenRouter = p.url && p.url.includes('openrouter.ai');
+  const providerField = g('provider-field');
+  if (providerField) {
+    providerField.style.display = isOpenRouter ? 'block' : 'none';
+  }
+
+  const plainKey = fullApiKeys[id] || '';
+  fullApiKey = plainKey;
+  isTypingApiKey = false;
+  if (plainKey && plainKey.length > 12) {
+    g('api-key').value = plainKey.substring(0,8) + '*'.repeat(plainKey.length-12) + plainKey.substring(plainKey.length-4);
+  } else { g('api-key').value = plainKey; }
+  saveSettings();
+}
+
+function onPresetFieldChange() {
+  const p = getActivePreset();
+  if (!p) return;
+  p.url = g('api-url').value;
+  p.model = g('model-name').value;
+  p.format = g('api-format').value;
+
+  // 检查是否为 OpenRouter，显示/隐藏提供商字段
+  const isOpenRouter = p.url && p.url.includes('openrouter.ai');
+  const providerField = g('provider-field');
+  if (providerField) {
+    providerField.style.display = isOpenRouter ? 'block' : 'none';
+  }
+
+  saveSettings();
+}
+
+function onProviderInput() {
+  const p = getActivePreset();
+  if (!p) return;
+  const providerValue = g('provider-name').value;
+  p.provider = providerValue || null;
+  saveSettings();
+}
+
+// ========== MODEL DROPDOWN ==========
+// 存储每个 preset 的模型列表（完整信息）
+const presetModels = {};
+
+function toggleModelDropdown(e) {
+  e.stopPropagation();
+  const dropdown = g('model-dropdown');
+  const btn = g('model-dropdown-btn');
+  const isOpen = dropdown.classList.contains('show');
+
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    btn.classList.remove('open');
+  } else {
+    // 加载当前 preset 的模型列表
+    const preset = getActivePreset();
+    if (preset && presetModels[preset.id]) {
+      renderModelList(presetModels[preset.id], preset);
+    }
+    dropdown.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+async function refreshModels(e) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const preset = getActivePreset();
+
+  if (!preset) return;
+
+  // 显示加载状态
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const models = await fetchModels(preset);
+
+    if (models.length === 0) {
+      // 没有获取到模型
+      renderModelList(null, preset, '无法获取模型列表，请检查 API 配置');
+    } else {
+      // 保存到当前 preset
+      presetModels[preset.id] = models;
+      renderModelList(models, preset);
+    }
+  } catch (error) {
+    console.error('Failed to fetch models:', error);
+    renderModelList(null, preset, '获取模型列表失败：' + error.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+async function fetchModels(preset) {
+  const apiKey = fullApiKeys[preset.id] || '';
+  if (!apiKey) {
+    throw new Error('请先配置 API Key');
+  }
+
+  let modelsData = [];
+
+  // 尝试 OpenAI 格式
+  try {
+    const openaiUrl = preset.url.replace(/\/(chat\/completions|messages)$/, '/models');
+    const response = await fetch(openaiUrl, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.data && Array.isArray(data.data)) {
+        // 保存完整的模型信息
+        modelsData = data.data;
+      }
+    }
+  } catch (e) {
+    console.log('OpenAI format failed:', e.message);
+  }
+
+  // 如果 OpenAI 格式失败，尝试 Claude 格式
+  if (modelsData.length === 0) {
+    try {
+      const claudeUrl = preset.url.replace(/\/messages$/, '/models');
+      const response = await fetch(claudeUrl, {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && Array.isArray(data.data)) {
+          modelsData = data.data;
+        }
+      }
+    } catch (e) {
+      console.log('Claude format failed:', e.message);
+    }
+  }
+
+  // 返回完整的模型信息
+  return modelsData;
+}
+
+function renderModelList(models, preset, errorMsg = null) {
+  const listEl = g('model-list');
+
+  if (errorMsg) {
+    listEl.innerHTML = `<div class="model-list-error">${escapeHtml(errorMsg)}</div>`;
+    return;
+  }
+
+  if (!models || models.length === 0) {
+    listEl.innerHTML = '<div class="model-list-empty">点击刷新获取模型列表</div>';
+    return;
+  }
+
+  let html = '';
+
+  // 显示模型列表
+  html += '<div class="model-section-title">🤖 模型</div>';
+  const sortedModels = models.map(m => m.id || m).sort();
+  sortedModels.forEach(modelId => {
+    html += `<div class="model-item" onclick="selectModel('${escapeHtml(modelId)}')">${escapeHtml(modelId)}</div>`;
+  });
+
+  listEl.innerHTML = html;
+}
+
+function selectModel(modelName) {
+  const input = g('model-name');
+  input.value = modelName;
+  g('model-badge').textContent = modelName;
+  onPresetFieldChange();
+
+  // 关闭下拉菜单
+  g('model-dropdown').classList.remove('show');
+  g('model-dropdown-btn').classList.remove('open');
+}
+
+// ========== PROVIDER DROPDOWN ==========
+function toggleProviderDropdown(e) {
+  e.stopPropagation();
+  const dropdown = g('provider-dropdown');
+  const btn = g('provider-dropdown-btn');
+  const isOpen = dropdown.classList.contains('show');
+
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    btn.classList.remove('open');
+  } else {
+    dropdown.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+function selectProvider(providerName) {
+  const input = g('provider-name');
+  input.value = providerName;
+  onProviderInput();
+
+  // 关闭下拉菜单
+  g('provider-dropdown').classList.remove('show');
+  g('provider-dropdown-btn').classList.remove('open');
+}
+
+// ========== FORMAT DROPDOWN ==========
+function toggleFormatDropdown(e) {
+  e.stopPropagation();
+  const dropdown = g('format-dropdown');
+  const btn = g('format-dropdown-btn');
+  const isOpen = dropdown.classList.contains('show');
+
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    btn.classList.remove('open');
+  } else {
+    dropdown.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+function selectFormat(formatValue) {
+  const input = g('api-format');
+  const formatNames = {
+    'openai': 'OpenAI 兼容（默认）',
+    'claude': 'Anthropic Claude'
+  };
+  input.value = formatNames[formatValue] || formatValue;
+
+  // 更新 preset
+  const p = getActivePreset();
+  if (p) {
+    p.format = formatValue;
+    saveSettings();
+  }
+
+  // 关闭下拉菜单
+  g('format-dropdown').classList.remove('show');
+  g('format-dropdown-btn').classList.remove('open');
+}
+
+// 点击外部关闭下拉菜单
+document.addEventListener('click', (e) => {
+  const modelDropdown = g('model-dropdown');
+  const providerDropdown = g('provider-dropdown');
+  const formatDropdown = g('format-dropdown');
+  const modelBtn = g('model-dropdown-btn');
+  const providerBtn = g('provider-dropdown-btn');
+  const formatBtn = g('format-dropdown-btn');
+  const wrapper = e.target.closest('.model-input-wrapper');
+
+  if (!wrapper) {
+    if (modelDropdown) modelDropdown.classList.remove('show');
+    if (providerDropdown) providerDropdown.classList.remove('show');
+    if (formatDropdown) formatDropdown.classList.remove('show');
+    if (modelBtn) modelBtn.classList.remove('open');
+    if (providerBtn) providerBtn.classList.remove('open');
+    if (formatBtn) formatBtn.classList.remove('open');
+  }
+});
+
+// 缩放功能：Ctrl + 滚轮
+let zoomLevel = 1;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.05;  // 改为 5%
+let zoomTimeout;
+
+function showZoomIndicator() {
+  const indicator = g('zoom-indicator');
+  indicator.textContent = Math.round(zoomLevel * 100) + '%';
+  indicator.classList.add('show');
+
+  // 清除之前的定时器
+  clearTimeout(zoomTimeout);
+
+  // 1.5秒后隐藏
+  zoomTimeout = setTimeout(() => {
+    indicator.classList.remove('show');
+  }, 1500);
+}
+
+async function applyZoom() {
+  if (isElectron) {
+    // 使用 Electron 原生缩放
+    await window.electronAPI.setZoomLevel(zoomLevel);
+    // 保存缩放等级
+    await saveSettings();
+  }
+}
+
+document.addEventListener('wheel', (e) => {
+  if (e.ctrlKey) {
+    e.preventDefault();
+
+    // 根据滚轮方向调整缩放
+    if (e.deltaY < 0) {
+      // 向上滚动，放大
+      zoomLevel = Math.min(MAX_ZOOM, zoomLevel + ZOOM_STEP);
+    } else {
+      // 向下滚动，缩小
+      zoomLevel = Math.max(MIN_ZOOM, zoomLevel - ZOOM_STEP);
+    }
+
+    // 应用缩放
+    applyZoom();
+    showZoomIndicator();
+  }
+}, { passive: false });
+
+// Ctrl + 0 重置缩放
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === '0') {
+    e.preventDefault();
+    zoomLevel = 1;
+    applyZoom();
+    showZoomIndicator();
+  }
+});
+
+
+async function addNewPreset() {
+  const id = 'preset_' + Date.now();
+  apiPresets.push({ id, name: '新预设', url: '', model: '', format: 'openai' });
+  fullApiKeys[id] = '';
+  selectPreset(id);
+  renderPresetDropdown();
+  setTimeout(() => startRenamePreset(null, id), 50);
+}
+
+function startRenamePreset(e, id) {
+  e && e.stopPropagation();
+  const nameEl = g('pname-' + id);
+  if (!nameEl) return;
+  const oldName = apiPresets.find(p => p.id === id)?.name || '';
+  const input = document.createElement('input');
+  input.className = 'preset-item-name-input';
+  input.value = oldName;
+  nameEl.replaceWith(input);
+  input.focus(); input.select();
+  let saved = false;
+  const finish = () => {
+    if (saved) return; saved = true;
+    const newName = input.value.trim() || oldName;
+    const p = apiPresets.find(p => p.id === id);
+    if (p) p.name = newName;
+    if (id === activePresetId) g('preset-btn-name').textContent = newName;
+    renderPresetDropdown();
+    saveSettings();
+  };
+  input.addEventListener('keydown', ev => { if(ev.key==='Enter'){ev.preventDefault();finish();} if(ev.key==='Escape'){saved=true;renderPresetDropdown();} });
+  input.addEventListener('blur', finish);
+}
+
+async function deletePreset(e, id) {
+  e && e.stopPropagation();
+  if (apiPresets.length <= 1) { showToast('至少保留一个预设'); return; }
+  apiPresets = apiPresets.filter(p => p.id !== id);
+  delete fullApiKeys[id];
+  if (activePresetId === id) selectPreset(apiPresets[0].id);
+  else { renderPresetDropdown(); saveSettings(); }
+}
+
+// ══ MARKED ══
+marked.setOptions({ breaks: true, gfm: true });
+const mdRenderer = new marked.Renderer();
+mdRenderer.code = function(code, lang) {
+  const language = lang || 'plaintext';
+  let hl = escapeHtml(code);
+  if (hlEnabled) {
+    try {
+      hl = hljs.getLanguage(language)
+        ? hljs.highlight(code, { language }).value
+        : hljs.highlightAuto(code).value;
+    } catch(e) {}
+  }
+  return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs">${hl}</code></pre></div>`;
+};
+marked.use({ renderer: mdRenderer });
+
+function renderMd(text) {
+  if (!mdEnabled) return `<span class="plain-text">${escapeHtml(text)}</span>`;
+  return marked.parse(text);
+}
+function escapeHtml(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══ ENCRYPTION ══
+// 使用 Electron safeStorage（系统级加密）或降级到简单加密
+async function encryptText(text) {
+  if (!text) return '';
+
+  // 在 Electron 环境中使用系统级加密
+  if (isElectron && window.electronAPI.encryptData) {
+    const result = await window.electronAPI.encryptData(text);
+    if (result.success) {
+      return result.data;
+    }
+  }
+
+  // 降级到简单 XOR 加密（仅用于开发环境）
+  const key = 'AI-CHAT-SECRET-KEY-2024';
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  return btoa(result);
+}
+
+async function decryptText(encrypted) {
+  if (!encrypted) return '';
+
+  // 在 Electron 环境中使用系统级解密
+  if (isElectron && window.electronAPI.decryptData) {
+    const result = await window.electronAPI.decryptData(encrypted);
+    if (result.success) {
+      return result.data;
+    }
+  }
+
+  // 降级到简单 XOR 解密（仅用于开发环境）
+  try {
+    const decoded = atob(encrypted);
+    const key = 'AI-CHAT-SECRET-KEY-2024';
+    let result = '';
+    for (let i = 0; i < decoded.length; i++) {
+      result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result;
+  } catch(e) {
+    return encrypted;
+  }
+}
+
+// ══ FILE STORAGE ══
+const FILES = { S:'settings.json', A:'active.json' };
+const CONVERSATIONS_FOLDER = 'conversations';
+
+// 检查是否在 Electron 环境中（如果 storage-adapter.js 未加载）
+// 检查是否在 Electron 环境中
+const isElectron = typeof window.electronAPI !== 'undefined';
+// 检查是否使用服务器存储（非 Electron 环境）
+const useServerStorage = !isElectron;
+
+// 服务器 API 辅助函数
+async function serverFetch(url, options = {}) {
+  try {
+    const res = await fetch(url, options);
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Server API error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// 生成对话文件名：标题_ID.json
+function getConvFileName(conv) {
+  // 清理标题，移除不合法的文件名字符
+  const cleanTitle = conv.title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+  return `${CONVERSATIONS_FOLDER}/${cleanTitle}_${conv.id}.json`;
+}
+
+// 读取数据（支持 Electron、服务器、localStorage）
+async function getData(key) {
+  if (isElectron) {
+    const filename = FILES[key];
+    const result = await window.electronAPI.readData(filename);
+    if (result.success) {
+      try {
+        return JSON.parse(result.data);
+      } catch(e) {
+        return null;
+      }
+    }
+    return null;
+  } else if (useServerStorage) {
+    // 服务器模式：只支持设置(S)
+    if (key === 'S') {
+      const data = await serverFetch('/api/settings');
+      return data.success ? data.data : null;
+    }
+    return null;
+  } else {
+    // 降级到 localStorage（开发环境或浏览器中）
+    try {
+      return JSON.parse(localStorage.getItem('dschat_' + key.toLowerCase()));
+    } catch(e) {
+      return null;
+    }
+  }
+}
+
+// 写入数据（支持 Electron、服务器、localStorage）
+async function setData(key, value) {
+  if (isElectron) {
+    const filename = FILES[key];
+    const data = JSON.stringify(value, null, 2);
+    await window.electronAPI.writeData(filename, data);
+  } else if (useServerStorage) {
+    // 服务器模式：只支持设置(S)
+    if (key === 'S') {
+      await serverFetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: value })
+      });
+    }
+  } else {
+    // 降级到 localStorage（开发环境或浏览器中）
+    try {
+      localStorage.setItem('dschat_' + key.toLowerCase(), JSON.stringify(value));
+    } catch(e) {}
+  }
+}
+
+// ══ API KEY MASKING ══
+let fullApiKey = ''; // 存储完整的 API Key
+let isTypingApiKey = false; // 标记是否正在输入
+
+function maskApiKey() {
+  const input = g('api-key');
+  if (!input) return;
+
+  const value = input.value;
+
+  // 如果是遮罩格式（包含星号），不处理
+  if (value.includes('*')) return;
+
+  // 如果有完整值，保存并遮罩
+  if (value && value.length > 12) {
+    fullApiKey = value;
+    const first8 = value.substring(0, 8);
+    const last4 = value.substring(value.length - 4);
+    input.value = `${first8}${'*'.repeat(value.length - 12)}${last4}`;
+  } else if (value) {
+    fullApiKey = value;
+  }
+}
+
+function handleApiKeyInput(event) {
+  const input = g('api-key');
+  if (!input) return;
+  const value = input.value;
+  if (!isTypingApiKey && value.includes('*')) {
+    input.value = '';
+    fullApiKey = '';
+    fullApiKeys[activePresetId] = '';
+    isTypingApiKey = true;
+    return;
+  }
+  isTypingApiKey = true;
+  fullApiKey = value;
+  clearTimeout(input.saveTimer);
+  input.saveTimer = setTimeout(() => {
+    maskApiKey();
+    fullApiKeys[activePresetId] = fullApiKey;
+    saveSettings();
+    isTypingApiKey = false;
+  }, 1000);
+}
+
+async function onSystemPromptChange() {
+  if (!currentConvId) return;  // 添加保护
+
+  const conv = await getCurrentConv();
+  if (conv) {
+    conv.systemPrompt = g('system-prompt').value;
+    await saveConv(conv, false);
+  }
+}
+
+async function saveSettings() {
+  const encryptedPresets = await Promise.all(apiPresets.map(async p => ({
+    ...p,
+    key: await encryptText(fullApiKeys[p.id] || '')
+  })));
+  await setData('S', {
+    presets: encryptedPresets,
+    activePresetId,
+    maxTokens: g('s-max-tokens').value, chatMemory: g('s-chat-memory').value,
+    temp: g('s-temp').value,
+    topP: g('s-top-p').value, topK: g('s-top-k').value,
+    freqPen: g('s-freq-pen').value, presPen: g('s-pres-pen').value,
+    repPen: g('s-rep-pen').value, minP: g('s-min-p').value, topA: g('s-top-a').value,
+    stream: streamEnabled, md: mdEnabled, hl: hlEnabled, enterToSend: enterToSend,
+    messageFontSize: messageFontSize,
+    messageWidth: messageWidth,
+    theme: document.documentElement.getAttribute('data-theme') || 'dark',
+    activePanel,
+    collapseStates: getCollapseStates(),
+    zoomLevel: zoomLevel,
+  });
+}
+
+async function loadSettings() {
+  const s = await getData('S');
+  const setv = (id, val) => { if(g(id)) g(id).value = val; };
+
+  // 加载预设
+  if (s?.presets?.length) {
+    for (const p of s.presets) {
+      fullApiKeys[p.id] = p.key ? await decryptText(p.key) : '';
+    }
+    apiPresets = s.presets.map(p => { const {key, ...rest} = p; return rest; });
+    activePresetId = s.activePresetId || apiPresets[0].id;
+  } else {
+    apiPresets = getDefaultPresets();
+    activePresetId = apiPresets[0].id;
+    fullApiKeys[activePresetId] = '';
+  }
+
+  // 填充当前预设字段
+  const p = getActivePreset();
+  g('preset-btn-name').textContent = p.name;
+  g('api-url').value = p.url;
+  g('model-name').value = p.model;
+  g('model-badge').textContent = p.model;
+
+  // 显示格式名称
+  const formatNames = {
+    'openai': 'OpenAI 兼容（默认）',
+    'claude': 'Anthropic Claude'
+  };
+  g('api-format').value = formatNames[p.format || 'openai'];
+
+  // 加载提供商字段
+  g('provider-name').value = p.provider || '';
+
+  // 检查是否为 OpenRouter，显示/隐藏提供商字段
+  const isOpenRouter = p.url && p.url.includes('openrouter.ai');
+  const providerField = g('provider-field');
+  if (providerField) {
+    providerField.style.display = isOpenRouter ? 'block' : 'none';
+  }
+
+  const plainKey = fullApiKeys[activePresetId] || '';
+  fullApiKey = plainKey;
+  if (plainKey && plainKey.length > 12) {
+    g('api-key').value = plainKey.substring(0,8) + '*'.repeat(plainKey.length-12) + plainKey.substring(plainKey.length-4);
+  } else { g('api-key').value = plainKey; }
+
+  if (!s) return;
+  setv('s-max-tokens',  s.maxTokens   ?? 0);
+  setv('s-chat-memory', s.chatMemory  ?? 10);
+  setv('s-temp',        s.temp        ?? 1);
+  setv('s-top-p',       s.topP        ?? 1);
+  setv('s-top-k',       s.topK        ?? 0);
+  setv('s-freq-pen',    s.freqPen     ?? 0);
+  setv('s-pres-pen',    s.presPen     ?? 0);
+  setv('s-rep-pen',     s.repPen      ?? 1);
+  setv('s-min-p',       s.minP        ?? 0);
+  setv('s-top-a',       s.topA        ?? 0);
+  streamEnabled = s.stream !== false;
+  mdEnabled     = s.md     !== false;
+  hlEnabled     = s.hl     !== false;
+  enterToSend   = s.enterToSend !== false;
+  messageFontSize = s.messageFontSize ?? 14;
+  messageWidth = s.messageWidth ?? 1080;
+  g('stream-toggle').classList.toggle('on', streamEnabled);
+  g('md-toggle').classList.toggle('on', mdEnabled);
+  g('hl-toggle').classList.toggle('on', hlEnabled);
+  g('enter-send-toggle').classList.toggle('on', enterToSend);
+  g('font-size-slider').value = messageFontSize;
+  g('font-size-val').textContent = messageFontSize + 'px';
+  g('message-width-slider').value = messageWidth;
+  g('message-width-val').textContent = messageWidth + 'px';
+  updateInputHints();
+
+  // 应用字体大小到所有消息
+  document.querySelectorAll('.bubble-content').forEach(el => {
+    el.style.fontSize = messageFontSize + 'px';
+  });
+
+  // 应用消息宽度到所有消息
+  document.querySelectorAll('.message-row').forEach(el => {
+    el.style.maxWidth = messageWidth + 'px';
+  });
+
+  // 加载缩放等级
+  if (s.zoomLevel !== undefined) {
+    zoomLevel = s.zoomLevel;
+    applyZoom();
+  }
+
+  // 加载主题
+  const theme = s.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+
+  refreshDisplays();
+  if (s.collapseStates) applyCollapseStates(s.collapseStates);
+  if ('activePanel' in s) restorePanel(s.activePanel);
+}
+
+function refreshDisplays() {
+  const mt = parseInt(g('s-max-tokens').value);
+  g('max-tokens-val').textContent  = mt === 0 ? '∞' : mt;
+  const cm = parseInt(g('s-chat-memory').value);
+  g('chat-memory-val').textContent = cm === 0 ? '∞' : cm;
+  g('temp-val').textContent        = parseFloat(g('s-temp').value).toFixed(3);
+  g('top-p-val').textContent       = parseFloat(g('s-top-p').value).toFixed(3);
+  g('top-k-val').textContent       = parseInt(g('s-top-k').value);
+  g('freq-pen-val').textContent    = parseFloat(g('s-freq-pen').value).toFixed(3);
+  g('pres-pen-val').textContent    = parseFloat(g('s-pres-pen').value).toFixed(3);
+  g('rep-pen-val').textContent     = parseFloat(g('s-rep-pen').value).toFixed(3);
+  g('min-p-val').textContent       = parseFloat(g('s-min-p').value).toFixed(3);
+  g('top-a-val').textContent       = parseFloat(g('s-top-a').value).toFixed(3);
+}
+
+function syncParam(el, valId, fmt) {
+  g(valId).textContent = fmt(el.value);
+  saveSettings();
+}
+
+// 主题切换
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  saveSettings();
+}
+
+// 重置所有生成参数到默认值
+function resetGenerationParams() {
+  // 默认值
+  const defaults = {
+    's-max-tokens': { value: 0, display: '∞' },
+    's-chat-memory': { value: 10, display: '10' },
+    's-temp': { value: 1, display: '1.000' },
+    's-top-p': { value: 1, display: '1.000' },
+    's-top-k': { value: 0, display: '0' },
+    's-freq-pen': { value: 0, display: '0.000' },
+    's-pres-pen': { value: 0, display: '0.000' },
+    's-rep-pen': { value: 1, display: '1.000' },
+    's-min-p': { value: 0, display: '0.000' },
+    's-top-a': { value: 0, display: '0.000' }
+  };
+
+  // 重置每个参数
+  for (const [id, config] of Object.entries(defaults)) {
+    const slider = g(id);
+    if (slider) {
+      slider.value = config.value;
+    }
+  }
+
+  // 更新显示值
+  g('max-tokens-val').textContent = '∞';
+  g('chat-memory-val').textContent = '10';
+  g('temp-val').textContent = '1.000';
+  g('top-p-val').textContent = '1.000';
+  g('top-k-val').textContent = '0';
+  g('freq-pen-val').textContent = '0.000';
+  g('pres-pen-val').textContent = '0.000';
+  g('rep-pen-val').textContent = '1.000';
+  g('min-p-val').textContent = '0.000';
+  g('top-a-val').textContent = '0.000';
+
+  saveSettings();
+  showToast('参数已重置');
+}
+
+// ══ CONVERSATIONS ══
+// 对话列表缓存
+let convsCache = null;
+let convsCacheTime = 0;
+const CACHE_TTL = 5000; // 5秒缓存
+
+// 完整对话内容缓存（用于服务器模式）
+const fullConvCache = new Map(); // key: convId, value: {conv, timestamp}
+const FULL_CONV_CACHE_TTL = 60000; // 60秒缓存
+
+// 获取所有对话列表（从conversations文件夹读取所有对话文件）
+async function getConvs(forceRefresh = false) {
+  const now = Date.now();
+
+  // 使用缓存（如果未过期且不强制刷新）
+  if (!forceRefresh && convsCache && (now - convsCacheTime < CACHE_TTL)) {
+    return convsCache;
+  }
+
+  if (isElectron) {
+    // 确保conversations文件夹存在
+    await window.electronAPI.ensureFolder(CONVERSATIONS_FOLDER);
+
+    // 列出所有对话文件
+    const result = await window.electronAPI.listFiles(CONVERSATIONS_FOLDER);
+    if (!result.success) return [];
+
+    const convs = [];
+    for (const filename of result.files) {
+      if (!filename.endsWith('.json')) continue;
+
+      const fileResult = await window.electronAPI.readData(`${CONVERSATIONS_FOLDER}/${filename}`);
+      if (fileResult.success) {
+        try {
+          const conv = JSON.parse(fileResult.data);
+          convs.push(conv);
+        } catch(e) {
+          console.error(`Failed to parse conversation file: ${filename}`, e);
+        }
+      }
+    }
+
+    // 按更新时间排序
+    convs.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    // 更新缓存
+    convsCache = convs;
+    convsCacheTime = now;
+
+    return convs;
+  } else if (useServerStorage) {
+    // 服务器模式：从服务器获取对话列表（仅元数据）
+    const data = await serverFetch('/api/conversations/batch', { method: 'POST' });
+    const convs = data.success ? data.conversations : [];
+
+    // 更新缓存
+    convsCache = convs;
+    convsCacheTime = now;
+
+    return convs;
+  } else {
+    // localStorage降级
+    const convs = await getData('C') || [];
+
+    // 更新缓存
+    convsCache = convs;
+    convsCacheTime = now;
+
+    return convs;
+  }
+}
+
+// 加载单个对话的完整内容（服务器模式专用）
+async function loadConvFromServer(id) {
+  try {
+    // 检查缓存
+    const cached = fullConvCache.get(id);
+    if (cached && (Date.now() - cached.timestamp < FULL_CONV_CACHE_TTL)) {
+      return cached.conv;
+    }
+
+    const data = await serverFetch(`/api/conversations/${id}`);
+    if (data.success) {
+      // 缓存完整对话
+      fullConvCache.set(id, {
+        conv: data.conversation,
+        timestamp: Date.now()
+      });
+      return data.conversation;
+    }
+    return null;
+  } catch (e) {
+    console.error('加载对话失败:', e);
+    return null;
+  }
+}
+
+// 获取当前对话（统一处理服务器模式和本地模式）
+async function getCurrentConv() {
+  if (!currentConvId) return null;
+
+  const convs = await getConvs();
+  let conv = convs.find(c => c.id === currentConvId);
+
+  // 如果是服务器模式且对话没有 messages（只有元数据），则加载完整内容
+  if (conv && useServerStorage && !isElectron && !conv.messages) {
+    conv = await loadConvFromServer(currentConvId);
+
+    // 更新缓存
+    if (conv && convsCache) {
+      const index = convsCache.findIndex(c => c.id === currentConvId);
+      if (index !== -1) {
+        convsCache[index] = conv;
+      }
+    }
+  }
+
+  return conv;
+}
+
+// 保存单个对话到独立文件
+async function saveConv(conv, updateTime = true) {
+  // 更新时间戳（可选）
+  if (updateTime) {
+    conv.updatedAt = Date.now();
+  }
+
+  // 清除缓存，因为数据已修改
+  convsCache = null;
+  fullConvCache.delete(conv.id); // 清除完整对话缓存
+  convsCache = null;
+
+  // 自动生成标题（仅在第一次且标题为"新对话"时）
+  const oldTitle = conv.title;
+  if (!conv.autoTitleGenerated && conv.title === '新对话') {
+    if (conv.rootMessageId && conv.messages[conv.rootMessageId]) {
+      const { messages } = buildRenderPath(conv);
+      const firstUser = messages.find(m => m.role === 'user');
+      if (firstUser) {
+        conv.title = firstUser.content.slice(0, 28) + (firstUser.content.length > 28 ? '…' : '');
+        conv.autoTitleGenerated = true;
+      }
+    }
+  }
+
+  if (isElectron) {
+    await window.electronAPI.ensureFolder(CONVERSATIONS_FOLDER);
+
+    // 如果标题改变了，删除旧文件
+    if (oldTitle !== conv.title) {
+      const oldFilename = `${CONVERSATIONS_FOLDER}/${oldTitle.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50)}_${conv.id}.json`;
+      try {
+        await window.electronAPI.deleteFile(oldFilename);
+      } catch (e) {
+        // 旧文件可能不存在，忽略错误
+      }
+    }
+
+    const filename = getConvFileName(conv);
+    const data = JSON.stringify(conv, null, 2);
+    await window.electronAPI.writeData(filename, data);
+  } else if (useServerStorage) {
+    // 服务器模式：保存到服务器
+    await serverFetch('/api/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversation: conv })
+    });
+  } else {
+    // localStorage降级：保存所有对话
+    const convs = await getData('C') || [];
+    const idx = convs.findIndex(c => c.id === conv.id);
+    if (idx >= 0) {
+      convs[idx] = conv;
+    } else {
+      convs.unshift(conv);
+    }
+    await setData('C', convs);
+  }
+
+  // 如果更新了时间戳，重新渲染对话列表以更新顺序
+  if (updateTime) {
+    renderConvList(await getConvs(true)); // 强制刷新缓存
+  }
+}
+
+// 删除单个对话文件
+async function deleteConvFile(conv) {
+  // 清除缓存，因为数据已修改
+  convsCache = null;
+  fullConvCache.delete(conv.id); // 清除完整对话缓存
+
+  if (isElectron) {
+    const filename = getConvFileName(conv);
+    await window.electronAPI.deleteFile(filename);
+  } else if (useServerStorage) {
+    // 服务器模式：从服务器删除
+    await serverFetch(`/api/conversations/${conv.id}`, {
+      method: 'DELETE'
+    });
+  } else {
+    // localStorage降级
+    const convs = await getData('C') || [];
+    const filtered = convs.filter(c => c.id !== conv.id);
+    await setData('C', filtered);
+  }
+}
+
+// 兼容旧的setConvs（已废弃，保留用于迁移）
+async function setConvs(convs) {
+  if (isElectron) {
+    // 新逻辑：每个对话单独保存
+    for (const conv of convs) {
+      await saveConv(conv);
+    }
+  } else {
+    await setData('C', convs);
+  }
+}
+
+/**
+ * 保存当前对话（树状结构）
+ */
+async function saveCurrentConv() {
+  if (!currentConvId) return;
+  const conv = await getCurrentConv();
+  if (!conv) return;
+
+  // 保存当前滚动位置
+  const messagesContainer = g('messages');
+  if (messagesContainer) {
+    conv.scrollPosition = messagesContainer.scrollTop;
+  }
+
+  // 深拷贝整个对话对象
+  conv.messages = JSON.parse(JSON.stringify(conv.messages || {}));
+  conv.branchNodes = JSON.parse(JSON.stringify(conv.branchNodes || {}));
+
+  // 保存单个对话文件（不更新时间戳）
+  await saveConv(conv, false);
+  renderConvList(await getConvs(true)); // 强制刷新缓存
+}
+
+/**
+ * 创建新对话（树状结构）
+ */
+async function newChat(saveCurrent = true) {
+  if (saveCurrent) await saveCurrentConv();
+
+  const id = generateId16();
+  const systemMsgId = generateId16();
+
+  // 创建系统消息作为根节点
+  const systemMessage = {
+    id: systemMsgId,
+    role: 'system',
+    content: '',
+    parentId: null,
+    children: [],
+    timestamp: Date.now()
+  };
+
+  // 创建树状结构的对话对象
+  const newConv = {
+    id: id,
+    title: '新对话',
+    autoTitleGenerated: false,
+    rootMessageId: systemMsgId,
+    messages: {
+      [systemMsgId]: systemMessage
+    },
+    branchNodes: {},
+    systemPrompt: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  // 保存新对话
+  await saveConv(newConv);
+
+  currentConvId = id;
+  await setData('A', id);
+
+  renderMessages();
+  renderConvList(await getConvs(true)); // 强制刷新缓存
+  updateStats();
+}
+
+/**
+ * 加载对话（树状结构）
+ */
+async function loadConv(id) {
+  // 只在切换到不同对话时才保存当前对话
+  if (currentConvId !== id) {
+    await saveCurrentConv();
+  }
+
+  let conv;
+
+  if (useServerStorage && !isElectron) {
+    // 服务器模式：从服务器加载完整对话内容
+    conv = await loadConvFromServer(id);
+    if (!conv) return;
+
+    // 更新缓存中的对话数据
+    if (convsCache) {
+      const index = convsCache.findIndex(c => c.id === id);
+      if (index !== -1) {
+        convsCache[index] = conv;
+      } else {
+        convsCache.push(conv);
+      }
+    }
+  } else {
+    // Electron 或 localStorage 模式：从列表中获取
+    const convs = await getConvs();
+    conv = convs.find(c => c.id === id);
+    if (!conv) return;
+  }
+
+  currentConvId = id;
+  await setData('A', id);
+
+  renderMessages();
+  renderConvList();
+  updateStats();
+
+  // 恢复滚动位置
+  if (conv.scrollPosition !== undefined && conv.scrollPosition !== null) {
+    // 使用 setTimeout 确保 DOM 完全渲染后再恢复滚动位置
+    setTimeout(() => {
+      const messagesContainer = g('messages');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = conv.scrollPosition;
+      }
+    }, 50);
+  } else {
+    scrollToBottom(true);  // 切换对话时强制滚动到底部
+  }
+}
+
+async function deleteConv(id, e) {
+  e && e.stopPropagation();
+  const convs = await getConvs();
+  const conv = convs.find(c => c.id === id);
+  if (!conv) return;
+
+  // 删除对话文件
+  await deleteConvFile(conv);
+
+  if (currentConvId === id) {
+    const remaining = await getConvs(true); // 强制刷新缓存
+    if (remaining.length > 0) await loadConv(remaining[0].id);
+    else await newChat(false);
+  } else {
+    renderConvList(await getConvs(true)); // 强制刷新缓存
+  }
+  showToast('已删除');
+}
+
+// 开始重命名对话（就地编辑）
+function startRenameConv(e, id) {
+  e && e.stopPropagation();
+  const titleEl = g('conv-title-' + id);
+  if (!titleEl) return;
+
+  // 获取当前对话
+  getConvs().then(convs => {
+    const conv = convs.find(c => c.id === id);
+    if (!conv) return;
+
+    const oldTitle = conv.title;
+    const input = document.createElement('input');
+    input.className = 'conv-title-input';
+    input.value = oldTitle;
+    input.style.cssText = 'width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;color:var(--text);outline:none;font-family:inherit';
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    let saved = false;
+    const finish = async () => {
+      if (saved) return;
+      saved = true;
+      const newTitle = input.value.trim() || oldTitle;
+
+      if (newTitle !== oldTitle) {
+        // 删除旧文件
+        await deleteConvFile(conv);
+
+        // 更新标题
+        conv.title = newTitle;
+        conv.updatedAt = Date.now();
+
+        // 保存新文件
+        await saveConv(conv);
+
+        showToast('已重命名');
+      }
+
+      renderConvList(await getConvs(true)); // 强制刷新缓存
+    };
+
+    input.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        finish();
+      }
+      if (ev.key === 'Escape') {
+        saved = true;
+        renderConvList(getConvs(true).then(convs => convs)); // 强制刷新缓存
+      }
+    });
+    input.addEventListener('blur', finish);
+  });
+}
+
+// 复制对话
+async function duplicateConv(id, e) {
+  e && e.stopPropagation();
+  const convs = await getConvs();
+  const conv = convs.find(c => c.id === id);
+  if (!conv) return;
+
+  // 深拷贝对话对象
+  const newConv = JSON.parse(JSON.stringify(conv));
+
+  // 生成新的对话ID
+  const newConvId = generateId16();
+  newConv.id = newConvId;
+  newConv.title = conv.title + ' (副本)';
+  newConv.createdAt = Date.now();
+  newConv.updatedAt = Date.now();
+
+  // 创建ID映射表（保留时间戳部分，只改随机部分）
+  const idMap = {};
+
+  // 为所有消息生成新ID
+  const newMessages = {};
+  for (const msgId in newConv.messages) {
+    const oldMsg = newConv.messages[msgId];
+    // 提取时间戳部分（前13位）
+    const timestamp = msgId.substring(0, 13);
+    // 生成新的随机部分（3位）
+    const random = Math.random().toString(36).substring(2, 5);
+    const newMsgId = timestamp + random;
+
+    idMap[msgId] = newMsgId;
+    newMessages[newMsgId] = { ...oldMsg, id: newMsgId };
+  }
+
+  // 更新消息的parentId和children引用
+  for (const newMsgId in newMessages) {
+    const msg = newMessages[newMsgId];
+    if (msg.parentId && idMap[msg.parentId]) {
+      msg.parentId = idMap[msg.parentId];
+    }
+    if (msg.children && msg.children.length > 0) {
+      msg.children = msg.children.map(childId => idMap[childId] || childId);
+    }
+  }
+
+  // 更新rootMessageId
+  if (newConv.rootMessageId && idMap[newConv.rootMessageId]) {
+    newConv.rootMessageId = idMap[newConv.rootMessageId];
+  }
+
+  // 为所有分支节点生成新ID
+  const newBranchNodes = {};
+  const branchNodeIdMap = {};
+
+  for (const nodeId in newConv.branchNodes) {
+    const oldNode = newConv.branchNodes[nodeId];
+    // 提取时间戳部分
+    const timestamp = nodeId.substring(0, 13);
+    const random = Math.random().toString(36).substring(2, 5);
+    const newNodeId = timestamp + random;
+
+    branchNodeIdMap[nodeId] = newNodeId;
+
+    newBranchNodes[newNodeId] = {
+      ...oldNode,
+      id: newNodeId,
+      parentMessageId: idMap[oldNode.parentMessageId] || oldNode.parentMessageId,
+      activeChildId: idMap[oldNode.activeChildId] || oldNode.activeChildId,
+      branches: oldNode.branches.map(branch => ({
+        ...branch,
+        id: generateId16(), // 分支记录也生成新ID
+        firstMessageId: idMap[branch.firstMessageId] || branch.firstMessageId
+      }))
+    };
+  }
+
+  newConv.messages = newMessages;
+  newConv.branchNodes = newBranchNodes;
+
+  // 更新消息的children引用（可能指向分支节点）
+  for (const newMsgId in newMessages) {
+    const msg = newMessages[newMsgId];
+    if (msg.children && msg.children.length > 0) {
+      msg.children = msg.children.map(childId => {
+        // 先查消息ID映射，再查分支节点ID映射
+        return idMap[childId] || branchNodeIdMap[childId] || childId;
+      });
+    }
+  }
+
+  // 保存新对话
+  await saveConv(newConv);
+
+  renderConvList(await getConvs(true)); // 强制刷新缓存
+  showToast('已复制');
+}
+
+async function renderConvList(convs = null) {
+  const list = g('conv-list');
+  if (!convs) {
+    convs = await getConvs();
+  }
+  if (!convs.length) { list.innerHTML = '<div class="conv-empty">暂无历史对话</div>'; return; }
+  list.innerHTML = convs.map(c => {
+    const d = new Date(c.updatedAt);
+    const meta = d.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'}) + ' ' + d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+
+    // 获取消息数量：优先使用服务器返回的 messageCount，否则从 messages 计算
+    let msgCount = 0;
+    if (c.messageCount !== undefined) {
+      msgCount = c.messageCount;
+    } else if (c.messages) {
+      for (const msgId in c.messages) {
+        if (c.messages[msgId].role !== 'system') {
+          msgCount++;
+        }
+      }
+    }
+
+    return `<div class="conv-item${c.id===currentConvId?' active':''}" onclick="loadConv('${c.id}')">
+      <div class="conv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="conv-info">
+        <div class="conv-title" id="conv-title-${c.id}">${escapeHtml(c.title)}</div>
+        <div class="conv-meta">${msgCount} 条 · ${meta}</div>
+      </div>
+      <div class="conv-actions">
+        <button class="conv-action-btn" onclick="startRenameConv(event,'${c.id}')" title="重命名">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="conv-action-btn" onclick="duplicateConv('${c.id}',event)" title="复制">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="conv-del" onclick="deleteConv('${c.id}',event)" title="删除">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══ RENDER MESSAGES ══
+/**
+ * 渲染消息树（树状结构）
+ */
+async function renderMessages() {
+  const container = g('messages');
+
+  if (!currentConvId) {
+    container.innerHTML = `<div class="empty-state" id="empty-state"><div class="empty-icon">✦</div><div class="empty-title">开始对话</div><div class="empty-sub">在下方输入你的问题</div></div>`;
+    return;
+  }
+
+  const conv = await getCurrentConv();
+
+  if (!conv || !conv.messages) {
+    container.innerHTML = `<div class="empty-state" id="empty-state"><div class="empty-icon">✦</div><div class="empty-title">开始对话</div><div class="empty-sub">在下方输入你的问题</div></div>`;
+    return;
+  }
+
+  // 加载当前对话的系统提示词
+  g('system-prompt').value = conv.systemPrompt || '';
+
+  // 构建渲染路径
+  const { messages, branchPoints } = buildRenderPath(conv);
+
+  // 过滤掉system消息
+  const visibleMessages = messages.filter(m => m.role !== 'system');
+
+  if (visibleMessages.length === 0) {
+    container.innerHTML = `<div class="empty-state" id="empty-state"><div class="empty-icon">✦</div><div class="empty-title">开始对话</div><div class="empty-sub">在下方输入你的问题</div></div>`;
+    return;
+  }
+
+  container.innerHTML = '';
+
+  // 渲染每条消息
+  visibleMessages.forEach(msg => {
+    appendBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id));
+  });
+}
+
+// ══ SEND / STOP ══
+function handleSendBtn() {
+  if (isGenerating) {
+    const controller = conversationControllers.get(currentConvId);
+    if (controller) controller.abort();
+  } else {
+    sendMessage();
+  }
+}
+
+async function sendMessage(retryText = null, isRetry = false) {
+  if (isGenerating) return;
+  const input = g('user-input');
+  const text = retryText || input.value.trim();
+  if (!text) return;
+
+  // 验证 API Key 格式
+  const apiKeyCheck = fullApiKey || g('api-key').value;
+  if (apiKeyCheck && !/^[\x00-\x7F]*$/.test(apiKeyCheck)) {
+    alert('⚠ API Key 包含非法字符，请检查是否包含中文或特殊符号');
+    return;
+  }
+
+  if (!currentConvId) await newChat(false);
+
+  const es = g('empty-state');
+  if (es) es.remove();
+
+  // 获取当前对话
+  const conv = await getCurrentConv();
+  if (!conv) return;
+
+  // 创建用户消息
+  const userMessageId = generateId16();
+  const userMessage = {
+    id: userMessageId,
+    role: 'user',
+    content: text,
+    parentId: null,
+    children: [],
+    timestamp: Date.now()
+  };
+
+  // 找到当前路径的最后一条消息
+  const { messages: pathMessages } = buildRenderPath(conv);
+  const lastMessage = pathMessages[pathMessages.length - 1];
+
+  if (lastMessage) {
+    userMessage.parentId = lastMessage.id;
+    lastMessage.children.push(userMessageId);
+  }
+
+  conv.messages[userMessageId] = userMessage;
+
+  // 创建AI消息
+  const aiMessageId = generateId16();
+  const aiMessage = {
+    id: aiMessageId,
+    role: 'assistant',
+    content: '\n',  // 初始显示换行符
+    parentId: userMessageId,
+    children: [],
+    timestamp: Date.now()
+  };
+
+  conv.messages[aiMessageId] = aiMessage;
+  userMessage.children.push(aiMessageId);
+
+  // 保存当前对话
+  await saveConv(conv);
+  await renderMessages();
+  scrollToBottom(true);  // 发送消息后强制滚动到底部
+
+  if (!isRetry) {
+    input.value = '';
+    autoResize(input);
+    updateCharCount();
+  }
+
+  // 找到AI消息的DOM元素
+  const rows = document.querySelectorAll('.message-row');
+  const aiRow = Array.from(rows).find(r => r.dataset.messageId === aiMessageId);
+  if (!aiRow) return;
+
+  const contentEl = aiRow.querySelector('.bubble-content');
+  // 显示跳动光标，表示AI正在思考
+  contentEl.innerHTML = '<span class="typing-cursor"></span>';
+  setGenerating(true);
+
+  // 读取参数
+  const preset = getActivePreset();
+  const apiUrl = preset.url.trim();
+  const apiKey = (fullApiKey || '').trim();
+  const model = preset.model.trim();
+  const format = preset.format || 'openai';
+  const sysP = conv.systemPrompt || '';
+  const chatMemory = parseInt(g('s-chat-memory').value) || 0;
+  const mt = parseInt(g('s-max-tokens').value);
+  const temp = parseFloat(g('s-temp').value);
+  const topP = parseFloat(g('s-top-p').value);
+  const topK = parseInt(g('s-top-k').value);
+  const freqPen = parseFloat(g('s-freq-pen').value);
+  const presPen = parseFloat(g('s-pres-pen').value);
+  const repPen = parseFloat(g('s-rep-pen').value);
+  const minP = parseFloat(g('s-min-p').value);
+  const topA = parseFloat(g('s-top-a').value);
+
+  // 使用对话级别的AbortController
+  const oldController = conversationControllers.get(currentConvId);
+  if (oldController) {
+    oldController.abort();
+  }
+  const controller = new AbortController();
+  conversationControllers.set(currentConvId, controller);
+
+  let fullText = '';
+
+  try {
+    setStatus('yellow', '生成中…');
+
+    // 构建消息历史（从根节点到用户消息）
+    const messageHistory = [];
+    let currentId = conv.rootMessageId;
+
+    while (currentId && currentId !== aiMessageId) {
+      // 检查是消息还是分支节点
+      const msg = conv.messages[currentId];
+      const branchNode = conv.branchNodes[currentId];
+
+      if (msg) {
+        // 是消息
+        if (msg.role !== 'system') {
+          messageHistory.push({ role: msg.role, content: msg.content });
+        }
+
+        // 移动到下一个节点（可能是消息或分支节点）
+        if (msg.children && msg.children.length > 0) {
+          currentId = msg.children[0];
+        } else {
+          break;
+        }
+      } else if (branchNode) {
+        // 是分支节点，跳转到激活的分支
+        currentId = branchNode.activeChildId;
+      } else {
+        // 既不是消息也不是分支节点，结束
+        break;
+      }
+    }
+
+    // 应用chat memory限制
+    const sliced = chatMemory > 0 ? messageHistory.slice(-(chatMemory * 2)) : messageHistory;
+
+    // 准备请求
+    let headers, body;
+
+    if (format === 'claude') {
+      headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      };
+      body = {
+        model,
+        max_tokens: mt > 0 ? mt : 4096,
+        temperature: temp,
+        top_p: topP,
+        top_k: topK > 0 ? topK : undefined,
+        stream: streamEnabled,
+        messages: sliced.map(m => ({ role: m.role, content: m.content }))
+      };
+      if (sysP) body.system = sysP;
+    } else {
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+      const messages = [];
+      if (sysP) messages.push({ role: 'system', content: sysP });
+      messages.push(...sliced);
+
+      body = { model, messages, temperature: temp, top_p: topP, frequency_penalty: freqPen, presence_penalty: presPen, repetition_penalty: repPen, stream: streamEnabled };
+      if (mt > 0) body.max_tokens = mt;
+      if (topK > 0) body.top_k = topK;
+      if (minP > 0) body.min_p = minP;
+      if (topA > 0) body.top_a = topA;
+
+      // OpenRouter: 添加 provider.order
+      if (preset.provider && apiUrl.includes('openrouter.ai')) {
+        body.provider = { order: [preset.provider] };
+      }
+    }
+
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err}`);
+    }
+
+    if (streamEnabled) {
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      let isFirstToken = true;  // 标记是否是第一个token
+      let rafId = null;
+      let needsUpdate = false;
+
+      if (format === 'claude') {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith('data: ')) continue;
+            const d = t.slice(6);
+            try {
+              const chunk = JSON.parse(d);
+              if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+                if (isFirstToken) {
+                  fullText = '';  // 清空初始的换行符
+                  isFirstToken = false;
+                }
+                fullText += chunk.delta.text;
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
+              }
+            } catch (e) { }
+          }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+        }
+      } else {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith('data: ')) continue;
+            const d = t.slice(6);
+            if (d === '[DONE]') break;
+            try {
+              const chunk = JSON.parse(d);
+              const delta = chunk.choices?.[0]?.delta?.content || '';
+              if (delta) {
+                if (isFirstToken) {
+                  fullText = '';  // 清空初始的换行符
+                  isFirstToken = false;
+                }
+                fullText += delta;
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
+              }
+            } catch (e) { }
+          }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+        }
+      }
+      contentEl.innerHTML = renderMd(fullText);
+    } else {
+      const data = await res.json();
+      if (format === 'claude') {
+        if (!data.content || !data.content[0] || !data.content[0].text) {
+          throw new Error('Invalid Claude API response format');
+        }
+        fullText = data.content[0].text;
+      } else {
+        if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+          throw new Error('Invalid OpenAI API response format');
+        }
+        fullText = data.choices[0].message.content;
+      }
+      contentEl.innerHTML = renderMd(fullText);
+    }
+
+    aiMessage.content = fullText;
+    const updatedConvs = await getConvs();
+    const updatedConv = updatedConvs.find(c => c.id === currentConvId);
+    if (updatedConv && updatedConv.messages[aiMessageId]) {
+      updatedConv.messages[aiMessageId].content = fullText;
+      await saveConv(updatedConv);
+    }
+
+    setStatus('green', '就绪');
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      if (fullText) {
+        contentEl.innerHTML = renderMd(fullText) + '<span class="stop-marker">[ 已停止 ]</span>';
+        aiMessage.content = fullText;
+        const updatedConvs = await getConvs();
+        const updatedConv = updatedConvs.find(c => c.id === currentConvId);
+        if (updatedConv && updatedConv.messages[aiMessageId]) {
+          updatedConv.messages[aiMessageId].content = fullText;
+          await saveConv(updatedConv);
+        }
+      } else {
+        aiRow.remove();
+      }
+      setStatus('green', '就绪');
+    } else {
+      contentEl.innerHTML = `<div class="error-bubble">⚠ ${escapeHtml(err.message)}</div>`;
+      setStatus('red', '出错');
+      setTimeout(() => setStatus('green', '就绪'), 4000);
+    }
+  } finally {
+    conversationControllers.delete(currentConvId);
+    setGenerating(false);
+    scrollToBottom();
+  }
+}
+
+/**
+ * 发送消息到树状结构（用于retry和edit-regen）
+ * @param {string} userText - 用户消息内容
+ * @param {string} aiMessageId - AI消息ID（已创建但内容为空）
+ */
+async function sendMessageToTree(userText, aiMessageId) {
+  if (isGenerating) return;
+
+  const convs = await getConvs();
+  const conv = await getCurrentConv();
+  if (!conv || !conv.messages[aiMessageId]) return;
+
+  const aiMessage = conv.messages[aiMessageId];
+
+  // 重新渲染以显示空的AI消息
+  await renderMessages();
+
+  const rows = document.querySelectorAll('.message-row');
+  const aiRow = Array.from(rows).find(r => r.dataset.messageId === aiMessageId);
+  if (!aiRow) return;
+
+  const contentEl = aiRow.querySelector('.bubble-content');
+  // 显示跳动光标，表示AI正在思考
+  contentEl.innerHTML = '<span class="typing-cursor"></span>';
+  setGenerating(true);
+
+  // 读取参数
+  const preset = getActivePreset();
+  const apiUrl = preset.url.trim();
+  const apiKey = (fullApiKey || '').trim();
+  const model = preset.model.trim();
+  const format = preset.format || 'openai';
+  const sysP = conv.systemPrompt || '';
+  const chatMemory = parseInt(g('s-chat-memory').value) || 0;
+  const mt = parseInt(g('s-max-tokens').value);
+  const temp = parseFloat(g('s-temp').value);
+  const topP = parseFloat(g('s-top-p').value);
+  const topK = parseInt(g('s-top-k').value);
+  const freqPen = parseFloat(g('s-freq-pen').value);
+  const presPen = parseFloat(g('s-pres-pen').value);
+  const repPen = parseFloat(g('s-rep-pen').value);
+  const minP = parseFloat(g('s-min-p').value);
+  const topA = parseFloat(g('s-top-a').value);
+
+  // 使用对话级别的AbortController
+  const oldController = conversationControllers.get(currentConvId);
+  if (oldController) {
+    oldController.abort();
+  }
+  const controller = new AbortController();
+  conversationControllers.set(currentConvId, controller);
+
+  let fullText = '';
+
+  try {
+    setStatus('yellow', '生成中…');
+
+    // 构建消息历史（从根节点到当前AI消息的父节点）
+    const messageHistory = [];
+    let currentId = conv.rootMessageId;
+
+    while (currentId && currentId !== aiMessageId) {
+      const msg = conv.messages[currentId];
+      if (!msg) break;
+
+      if (msg.role !== 'system') {
+        messageHistory.push({ role: msg.role, content: msg.content });
+      }
+
+      // 查找下一个消息
+      const branchNode = findBranchNodeByParent(conv, currentId);
+      if (branchNode) {
+        currentId = branchNode.activeChildId;
+      } else if (msg.children && msg.children.length > 0) {
+        currentId = msg.children[0];
+      } else {
+        break;
+      }
+    }
+
+    // 应用chat memory限制
+    const sliced = chatMemory > 0 ? messageHistory.slice(-(chatMemory * 2)) : messageHistory;
+
+    // 准备请求
+    let headers, body;
+
+    if (format === 'claude') {
+      headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      };
+      body = {
+        model,
+        max_tokens: mt > 0 ? mt : 4096,
+        temperature: temp,
+        top_p: topP,
+        top_k: topK > 0 ? topK : undefined,
+        stream: streamEnabled,
+        messages: sliced.map(m => ({ role: m.role, content: m.content }))
+      };
+      if (sysP) body.system = sysP;
+    } else {
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+      const messages = [];
+      if (sysP) messages.push({ role: 'system', content: sysP });
+      messages.push(...sliced);
+
+      body = { model, messages, temperature: temp, top_p: topP, frequency_penalty: freqPen, presence_penalty: presPen, repetition_penalty: repPen, stream: streamEnabled };
+      if (mt > 0) body.max_tokens = mt;
+      if (topK > 0) body.top_k = topK;
+      if (minP > 0) body.min_p = minP;
+      if (topA > 0) body.top_a = topA;
+
+      // OpenRouter: 添加 provider.order
+      if (preset.provider && apiUrl.includes('openrouter.ai')) {
+        body.provider = { order: [preset.provider] };
+      }
+    }
+
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err}`);
+    }
+
+    if (streamEnabled) {
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      let isFirstToken = true;  // 标记是否是第一个token
+      let rafId = null;
+      let needsUpdate = false;
+
+      if (format === 'claude') {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith('data: ')) continue;
+            const d = t.slice(6);
+            try {
+              const chunk = JSON.parse(d);
+              if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+                if (isFirstToken) {
+                  fullText = '';  // 清空初始的换行符
+                  isFirstToken = false;
+                }
+                fullText += chunk.delta.text;
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
+              }
+            } catch (e) { }
+          }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+        }
+      } else {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith('data: ')) continue;
+            const d = t.slice(6);
+            if (d === '[DONE]') break;
+            try {
+              const chunk = JSON.parse(d);
+              const delta = chunk.choices?.[0]?.delta?.content;
+              if (delta) {
+                if (isFirstToken) {
+                  fullText = '';  // 清空初始的换行符
+                  isFirstToken = false;
+                }
+                fullText += delta;
+                needsUpdate = true;
+
+                // 使用 requestAnimationFrame 批处理 DOM 更新
+                if (!rafId) {
+                  rafId = requestAnimationFrame(() => {
+                    if (needsUpdate) {
+                      contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+                      scrollToBottom();
+                      needsUpdate = false;
+                    }
+                    rafId = null;
+                  });
+                }
+              }
+            } catch (e) { }
+          }
+        }
+        // 确保最后一次更新完成
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        if (needsUpdate) {
+          contentEl.innerHTML = renderMd(fullText) + '<span class="typing-cursor"></span>';
+        }
+      }
+    } else {
+      const data = await res.json();
+      fullText = format === 'claude' ? data.content?.[0]?.text || '' : data.choices?.[0]?.message?.content || '';
+    }
+
+    contentEl.innerHTML = renderMd(fullText);
+    aiMessage.content = fullText;
+
+    const updatedConvs = await getConvs();
+    const updatedConv = updatedConvs.find(c => c.id === currentConvId);
+    if (updatedConv && updatedConv.messages[aiMessageId]) {
+      updatedConv.messages[aiMessageId].content = fullText;
+      await saveConv(updatedConv);
+    }
+
+    setStatus('green', '就绪');
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      if (fullText) {
+        contentEl.innerHTML = renderMd(fullText) + '<span class="stop-marker">[ 已停止 ]</span>';
+        aiMessage.content = fullText;
+        const updatedConvs = await getConvs();
+        const updatedConv = updatedConvs.find(c => c.id === currentConvId);
+        if (updatedConv && updatedConv.messages[aiMessageId]) {
+          updatedConv.messages[aiMessageId].content = fullText;
+          await saveConv(updatedConv);
+        }
+      } else {
+        aiRow.remove();
+      }
+      setStatus('green', '就绪');
+    } else {
+      contentEl.innerHTML = `<div class="error-bubble">⚠ ${escapeHtml(err.message)}</div>`;
+      setStatus('red', '出错');
+      setTimeout(() => setStatus('green', '就绪'), 4000);
+    }
+  } finally {
+    conversationControllers.delete(currentConvId);
+    setGenerating(false);
+    scrollToBottom();
+  }
+}
+
+// ══ DOM HELPERS ══
+function g(id){ return document.getElementById(id); }
+
+/**
+ * 添加消息气泡（支持分支管理）
+ * @param {string} role - 消息角色
+ * @param {string} text - 消息内容
+ * @param {boolean} empty - 是否为空气泡（显示输入光标）
+ * @param {string} messageId - 消息ID
+ * @param {object} branchNode - 分支节点（如果该消息是分支的第一条消息）
+ */
+function appendBubble(role, text, empty=false, messageId=null, branchNode=null) {
+  const isUser = role==='user';
+  const row = document.createElement('div');
+  row.className = 'message-row' + (isUser ? ' user-row' : '');
+
+  if (messageId) {
+    row.dataset.messageId = messageId;
+  }
+
+  // 构建分支管理按钮（如果有分支节点）
+  let branchManager = '';
+  if (branchNode && branchNode.branches && branchNode.branches.length >= 2) {
+    const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
+    const totalBranches = branchNode.branches.length;
+
+    branchManager = `
+      <div class="branch-manager" data-node-id="${branchNode.id}">
+        <button class="branch-btn" data-action="branch-prev" data-node-id="${branchNode.id}" ${currentIndex === 0 ? 'disabled' : ''} title="上一个分支"><</button>
+        <span class="branch-indicator">${currentIndex + 1}/${totalBranches}</span>
+        <button class="branch-btn" data-action="branch-next" data-node-id="${branchNode.id}" ${currentIndex === totalBranches - 1 ? 'disabled' : ''} title="下一个分支">></button>
+      </div>`;
+  }
+
+  // 构建操作按钮（AI和用户消息都有）
+  // 用户消息：分支管理在左边，操作按钮在右边
+  // AI消息：操作按钮在左边，分支管理在右边
+  const actions = isUser ? `
+    <div class="bubble-actions">
+      ${branchManager}
+      <button class="bubble-action-btn" data-action="retry" title="重试"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
+      <button class="bubble-action-btn" data-action="copy" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <button class="bubble-action-btn" data-action="edit" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="bubble-action-btn del" data-action="delete" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+    </div>` : `
+    <div class="bubble-actions">
+      <button class="bubble-action-btn" data-action="retry" title="重试"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
+      <button class="bubble-action-btn" data-action="copy" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <button class="bubble-action-btn" data-action="edit" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="bubble-action-btn del" data-action="delete" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+      ${branchManager}
+    </div>`;
+
+  const modelName = isUser ? '你' : (getActivePreset()?.model || 'AI');
+  row.innerHTML = `<div class="avatar ${role}">${isUser?'U':'AI'}</div>
+    <div class="bubble">
+      <div class="bubble-name ${isUser?'user-name':'ai-name'}">${modelName}</div>
+      <div class="bubble-content ${isUser?'user-msg':'ai-msg'}" style="font-size:${messageFontSize}px">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
+      ${actions}
+    </div>`;
+  row.style.maxWidth = messageWidth + 'px';
+  g('messages').appendChild(row);
+  return row;
+}
+
+// 检查用户是否在底部
+function isUserAtBottom() {
+  const m = g('messages');
+  const threshold = 50; // 距离底部50px内算作"在底部"
+  return m.scrollHeight - m.scrollTop - m.clientHeight < threshold;
+}
+
+// 智能滚动：只有用户在底部时才滚动
+function scrollToBottom(force = false) {
+  const m = g('messages');
+  if (force || isUserAtBottom()) {
+    m.scrollTop = m.scrollHeight;
+  }
+}
+
+// ========== BUBBLE ACTIONS ==========
+function copyMessage(btn) {
+  const row = btn.closest('.message-row');
+  const content = row.querySelector('.bubble-content');
+  const text = content.textContent.trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(()=>{
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    }, 1200);
+  }).catch(err => {
+    console.warn('复制失败:', err);
+  });
+}
+
+/**
+ * 删除消息（树状结构）
+ */
+async function deleteMessage(btn) {
+  if (isGenerating) return;
+  const row = btn.closest('.message-row');
+  const messageId = row.dataset.messageId;
+  if (!messageId) return;
+
+  const convs = await getConvs();
+  const conv = await getCurrentConv();
+  if (!conv || !conv.messages[messageId]) return;
+
+  const message = conv.messages[messageId];
+  const parentId = message.parentId;
+  const children = message.children || [];
+
+  // 修改：检查parentId是消息还是分支节点
+  const parentMessage = conv.messages[parentId];
+  const parentBranchNode = conv.branchNodes[parentId];
+
+  // 判断删除策略
+  if (children.length > 0 && parentBranchNode) {
+    // 情况1：有子消息 + 父节点是分支节点 → 只清空内容为换行符（保留分支结构）
+    message.content = "\n";
+    await saveConv(conv);
+    await renderMessages();
+  } else if (children.length > 0 && parentMessage) {
+    // 情况2：有子消息 + 父节点是消息 → 删除该消息，将子节点接到父消息上
+    const childId = children[0]; // 只有一个子节点（单链或分支节点）
+
+    // 将子节点的parentId改为父消息ID
+    const childMessage = conv.messages[childId];
+    const childBranchNode = conv.branchNodes[childId];
+    if (childMessage) {
+      childMessage.parentId = parentId;
+    } else if (childBranchNode) {
+      childBranchNode.parentMessageId = parentId;
+    }
+
+    // 将父消息的children中的当前消息ID替换为子节点ID
+    const msgIndex = parentMessage.children.indexOf(messageId);
+    if (msgIndex !== -1) {
+      parentMessage.children[msgIndex] = childId;
+    }
+
+    // 删除当前消息
+    delete conv.messages[messageId];
+
+    await saveConv(conv);
+    await renderMessages();
+  } else {
+    // 情况3：没有子消息 → 完全删除
+
+    if (parentMessage) {
+      // 父节点是消息，直接从children中移除
+      const childIndex = parentMessage.children.indexOf(messageId);
+      if (childIndex !== -1) {
+        parentMessage.children.splice(childIndex, 1);
+      }
+    } else if (parentBranchNode) {
+      // 父节点是分支节点
+      const branchIndex = parentBranchNode.branches.findIndex(
+        b => b.firstMessageId === messageId
+      );
+
+      if (branchIndex !== -1) {
+        // 删除该分支
+        parentBranchNode.branches.splice(branchIndex, 1);
+
+        // 如果只剩一个分支，删除分支节点，恢复直接连接
+        if (parentBranchNode.branches.length === 1) {
+          const lastBranch = parentBranchNode.branches[0];
+          const grandParent = conv.messages[parentBranchNode.parentMessageId];
+
+          if (grandParent) {
+            // 将祖父消息的children从分支节点ID改为消息ID
+            const nodeIndex = grandParent.children.indexOf(parentId);
+            if (nodeIndex !== -1) {
+              grandParent.children[nodeIndex] = lastBranch.firstMessageId;
+            }
+
+            // 更新子消息的parentId从分支节点ID改为祖父消息ID
+            const childMessage = conv.messages[lastBranch.firstMessageId];
+            if (childMessage) {
+              childMessage.parentId = parentBranchNode.parentMessageId;
+            }
+          }
+
+          // 删除分支节点
+          delete conv.branchNodes[parentId];
+        } else if (parentBranchNode.branches.length === 0) {
+          // 没有分支了，删除分支节点
+          const grandParent = conv.messages[parentBranchNode.parentMessageId];
+          if (grandParent) {
+            const nodeIndex = grandParent.children.indexOf(parentId);
+            if (nodeIndex !== -1) {
+              grandParent.children.splice(nodeIndex, 1);
+            }
+          }
+          delete conv.branchNodes[parentId];
+        } else if (parentBranchNode.activeChildId === messageId) {
+          // 切换到其他分支
+          const newIndex = Math.max(0, branchIndex - 1);
+          parentBranchNode.activeChildId = parentBranchNode.branches[newIndex].firstMessageId;
+        }
+      }
+    }
+
+    // 删除消息本身
+    delete conv.messages[messageId];
+
+    await saveConv(conv);
+    await renderMessages();
+  }
+}
+
+/**
+ * 重试消息（树状结构 - AI消息）
+ */
+async function retryMessage(btn) {
+  if (isGenerating) return;
+  const row = btn.closest('.message-row');
+  const messageId = row.dataset.messageId;
+  if (!messageId) return;
+
+  const convs = await getConvs();
+  const conv = await getCurrentConv();
+  if (!conv || !conv.messages[messageId]) return;
+
+  const message = conv.messages[messageId];
+  const isUserMessage = message.role === 'user';
+
+  if (isUserMessage) {
+    // 用户消息的重试：在该用户消息下创建分支节点，生成新的AI回复
+    // 检查是否已存在分支节点
+    let branchNode = null;
+
+    // 查找当前用户消息的第一个子节点（可能是AI消息ID或分支节点ID）
+    const firstChild = message.children.length > 0 ? message.children[0] : null;
+
+    if (firstChild) {
+      if (conv.branchNodes[firstChild]) {
+        // 子节点已经是分支节点，直接使用
+        branchNode = conv.branchNodes[firstChild];
+      } else if (conv.messages[firstChild]) {
+        // 子节点是消息，需要创建分支节点
+        branchNode = {
+          id: generateId16(),
+          parentMessageId: messageId,
+          branches: [
+            {
+              id: generateId16(),
+              firstMessageId: firstChild,
+              createdAt: Date.now()
+            }
+          ],
+          activeChildId: firstChild
+        };
+        conv.branchNodes[branchNode.id] = branchNode;
+
+        // 修改：将用户消息的children改为只包含分支节点ID
+        message.children = [branchNode.id];
+
+        // 修改：更新原AI消息的parentId为分支节点ID
+        conv.messages[firstChild].parentId = branchNode.id;
+      }
+    } else {
+      // 没有子节点，创建空的分支节点
+      branchNode = {
+        id: generateId16(),
+        parentMessageId: messageId,
+        branches: [],
+        activeChildId: null
+      };
+      conv.branchNodes[branchNode.id] = branchNode;
+      message.children = [branchNode.id];
+    }
+
+    if (!branchNode) return;
+
+    // 创建新的AI消息（新分支）
+    const newAIMessageId = generateId16();
+    const newAIMessage = {
+      id: newAIMessageId,
+      role: 'assistant',
+      content: '\n',  // 初始显示换行符
+      parentId: branchNode.id,  // 修改：指向分支节点
+      children: [],
+      timestamp: Date.now()
+    };
+
+    conv.messages[newAIMessageId] = newAIMessage;
+
+    // 添加到分支节点
+    branchNode.branches.push({
+      id: generateId16(),
+      firstMessageId: newAIMessageId,
+      createdAt: Date.now()
+    });
+
+    // 更新activeChildId
+    branchNode.activeChildId = newAIMessageId;
+
+    // 保存并重新渲染
+    await saveConv(conv);
+    await renderMessages();
+
+    // 发送API请求生成新回复
+    await sendMessageToTree(message.content, newAIMessageId);
+
+  } else {
+    // AI消息的重试：在父节点下创建分支节点，生成新的AI回复
+    const parentId = message.parentId;
+
+    // 检查父节点是消息还是分支节点
+    const parentMessage = conv.messages[parentId];
+    const parentBranchNode = conv.branchNodes[parentId];
+
+    if (!parentMessage && !parentBranchNode) return;
+
+    let actualParentMessageId;
+    if (parentMessage) {
+      // 父节点是消息
+      actualParentMessageId = parentId;
+    } else if (parentBranchNode) {
+      // 父节点是分支节点，获取分支节点的父消息
+      actualParentMessageId = parentBranchNode.parentMessageId;
+    }
+
+    if (!actualParentMessageId || !conv.messages[actualParentMessageId]) return;
+
+    const actualParentMessage = conv.messages[actualParentMessageId];
+
+    // 找到对应的用户消息
+    let userMessage = actualParentMessage;
+    if (userMessage.role !== 'user') {
+      // 如果父消息不是用户消息，继续向上查找
+      let currentId = actualParentMessageId;
+      while (currentId) {
+        const msg = conv.messages[currentId];
+        if (!msg) break;
+        if (msg.role === 'user') {
+          userMessage = msg;
+          break;
+        }
+        currentId = msg.parentId;
+      }
+    }
+
+    if (userMessage.role !== 'user') return;
+
+    // 检查是否已存在分支节点
+    let branchNode = findBranchNodeByParent(conv, actualParentMessageId);
+
+    if (!branchNode) {
+      // 创建新的分支节点
+      branchNode = {
+        id: generateId16(),
+        parentMessageId: actualParentMessageId,
+        branches: [
+          {
+            id: generateId16(),
+            firstMessageId: messageId,
+            createdAt: Date.now()
+          }
+        ],
+        activeChildId: messageId
+      };
+      conv.branchNodes[branchNode.id] = branchNode;
+
+      // 修改：将父消息的children改为只包含分支节点ID
+      actualParentMessage.children = [branchNode.id];
+
+      // 修改：更新原AI消息的parentId为分支节点ID
+      conv.messages[messageId].parentId = branchNode.id;
+    }
+
+    // 创建新的AI消息（新分支）
+    const newAIMessageId = generateId16();
+    const newAIMessage = {
+      id: newAIMessageId,
+      role: 'assistant',
+      content: '\n',  // 初始显示换行符
+      parentId: branchNode.id,  // 修改：指向分支节点
+      children: [],
+      timestamp: Date.now()
+    };
+
+    conv.messages[newAIMessageId] = newAIMessage;
+
+    // 添加到分支节点
+    branchNode.branches.push({
+      id: generateId16(),
+      firstMessageId: newAIMessageId,
+      createdAt: Date.now()
+    });
+
+    // 更新activeChildId
+    branchNode.activeChildId = newAIMessageId;
+
+    // 保存并重新渲染
+    await saveConv(conv);
+    await renderMessages();
+
+    // 发送API请求生成新回复
+    await sendMessageToTree(userMessage.content, newAIMessageId);
+  }
+}
+
+/**
+ * 编辑消息（树状结构）
+ */
+function editMessage(btn) {
+  if (isGenerating) return;
+  const row = btn.closest('.message-row');
+  const content = row.querySelector('.bubble-content');
+  const actions = row.querySelector('.bubble-actions');
+  const branchManager = row.querySelector('.branch-manager');
+  const originalText = content.textContent.trim();
+
+  // 判断是否为用户消息
+  const isUserMessage = row.classList.contains('user-row');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bubble-edit-wrap';
+
+  // AI消息只显示"取消"和"保存"，用户消息显示"取消"、"保存"和"保存并重新生成"
+  const saveHint = enterToSend ? 'Enter 保存' : 'Ctrl+Enter 保存';
+  const buttons = isUserMessage
+    ? `<button class="bubble-edit-btn cancel">取消</button>
+       <button class="bubble-edit-btn save">保存</button>
+       <button class="bubble-edit-btn regen">保存并重新生成</button>`
+    : `<button class="bubble-edit-btn cancel">取消</button>
+       <button class="bubble-edit-btn save">保存</button>`;
+
+  wrap.innerHTML = `
+    <textarea class="bubble-edit-textarea">${escapeHtml(originalText)}</textarea>
+    <div class="bubble-edit-footer">
+      <div class="bubble-edit-info">
+        <span class="bubble-edit-char-count"><span class="char-count">0</span> 字符</span>
+        <span class="bubble-edit-hint">${saveHint} · Esc 取消</span>
+      </div>
+      <div class="bubble-edit-btns">
+        ${buttons}
+      </div>
+    </div>`;
+
+  content.replaceWith(wrap);
+  actions.style.display = 'none';
+  if (branchManager) branchManager.style.display = 'none';
+
+  const textarea = wrap.querySelector('textarea');
+  const charCountEl = wrap.querySelector('.char-count');
+
+  // 自动调整高度
+  const autoResize = () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+  };
+
+  // 更新字符计数
+  const updateCharCount = () => {
+    charCountEl.textContent = textarea.value.length;
+  };
+
+  textarea.addEventListener('input', () => {
+    autoResize();
+    updateCharCount();
+  });
+
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  autoResize();
+  updateCharCount();
+
+  // 滚动到编辑框，确保完全可见
+  setTimeout(() => {
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 0);
+
+  // 键盘快捷键
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      wrap.querySelector('.cancel').click();
+    } else if (e.key === 'Enter') {
+      if (enterToSend) {
+        // Enter保存模式：Enter保存，Ctrl/Shift+Enter换行
+        if (!e.ctrlKey && !e.shiftKey) {
+          e.preventDefault();
+          wrap.querySelector('.save').click();
+        } else {
+          // Ctrl+Enter 或 Shift+Enter 换行
+          e.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const value = textarea.value;
+          textarea.value = value.substring(0, start) + '\n' + value.substring(end);
+          textarea.selectionStart = textarea.selectionEnd = start + 1;
+          autoResize(textarea);
+        }
+      } else {
+        // Ctrl+Enter保存模式：Ctrl/Shift+Enter保存，Enter换行
+        if (e.ctrlKey || e.shiftKey) {
+          e.preventDefault();
+          wrap.querySelector('.save').click();
+        }
+      }
+    }
+  });
+
+  wrap.querySelector('.cancel').onclick = () => {
+    wrap.replaceWith(content);
+    actions.style.display = '';
+    if (branchManager) branchManager.style.display = '';
+  };
+
+  wrap.querySelector('.save').onclick = async () => {
+    const newText = textarea.value.trim();
+    if (!newText) return;
+
+    const messageId = row.dataset.messageId;
+    if (!messageId) return;
+
+    const conv = await getCurrentConv();
+    if (!conv || !conv.messages[messageId]) return;
+
+    conv.messages[messageId].content = newText;
+    await saveConv(conv);
+
+    content.innerHTML = renderMd(newText);
+    wrap.replaceWith(content);
+    actions.style.display = '';
+    if (branchManager) branchManager.style.display = '';
+  };
+
+  // 只有用户消息才有"保存并重新生成"按钮
+  const regenBtn = wrap.querySelector('.regen');
+  if (regenBtn) {
+    regenBtn.onclick = async () => {
+      const newText = textarea.value.trim();
+      if (!newText) return;
+
+      const messageId = row.dataset.messageId;
+      if (!messageId) return;
+
+      const conv = await getCurrentConv();
+      if (!conv || !conv.messages[messageId]) return;
+
+      const message = conv.messages[messageId];
+      const parentId = message.parentId;
+
+      // 检查父节点是消息还是分支节点
+      const parentMessage = conv.messages[parentId];
+      const parentBranchNode = conv.branchNodes[parentId];
+
+      if (!parentMessage && !parentBranchNode) return;
+
+      let actualParentMessageId;
+      if (parentMessage) {
+        actualParentMessageId = parentId;
+      } else if (parentBranchNode) {
+        actualParentMessageId = parentBranchNode.parentMessageId;
+      }
+
+      if (!actualParentMessageId) return;
+
+      // 在父消息下创建分支节点
+      let branchNode = findBranchNodeByParent(conv, actualParentMessageId);
+
+      if (!branchNode) {
+        // 创建新的分支节点
+        branchNode = {
+          id: generateId16(),
+          parentMessageId: actualParentMessageId,
+          branches: [
+            {
+              id: generateId16(),
+              firstMessageId: messageId,
+              createdAt: Date.now()
+            }
+          ],
+          activeChildId: messageId
+        };
+        conv.branchNodes[branchNode.id] = branchNode;
+
+        // 修改：将父消息的children改为只包含分支节点ID
+        const actualParent = conv.messages[actualParentMessageId];
+        if (actualParent) {
+          actualParent.children = [branchNode.id];
+        }
+
+        // 修改：更新原消息的parentId为分支节点ID
+        conv.messages[messageId].parentId = branchNode.id;
+      }
+
+      // 创建新的用户消息（新分支）
+      const newUserMessageId = generateId16();
+      const newUserMessage = {
+        id: newUserMessageId,
+        role: message.role,
+        content: newText,
+        parentId: branchNode.id,  // 修改：指向分支节点
+        children: [],
+        timestamp: Date.now()
+      };
+
+      conv.messages[newUserMessageId] = newUserMessage;
+
+      // 添加到分支节点
+      branchNode.branches.push({
+        id: generateId16(),
+        firstMessageId: newUserMessageId,
+        createdAt: Date.now()
+      });
+
+      // 更新activeChildId
+      branchNode.activeChildId = newUserMessageId;
+
+      // 保存并重新渲染
+      await saveConv(conv);
+      await renderMessages();
+
+      // 如果是用户消息，生成AI回复
+      if (message.role === 'user') {
+        const newAIMessageId = generateId16();
+        const newAIMessage = {
+          id: newAIMessageId,
+          role: 'assistant',
+          content: '\n',  // 初始显示换行符
+          parentId: newUserMessageId,
+          children: [],
+          timestamp: Date.now()
+        };
+
+        conv.messages[newAIMessageId] = newAIMessage;
+        newUserMessage.children.push(newAIMessageId);
+
+        await saveConv(conv);
+        await renderMessages();
+
+        // 发送API请求
+        await sendMessageToTree(newText, newAIMessageId);
+      }
+    };
+  }
+}
+
+/**
+ * 切换分支
+ */
+async function switchBranch(nodeId, direction) {
+  const conv = await getCurrentConv();
+  if (!conv || !conv.branchNodes[nodeId]) return;
+
+  const branchNode = conv.branchNodes[nodeId];
+  const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
+
+  if (currentIndex === -1) return;
+
+  const newIndex = currentIndex + direction;
+  if (newIndex < 0 || newIndex >= branchNode.branches.length) return;
+
+  // 更新activeChildId
+  branchNode.activeChildId = branchNode.branches[newIndex].firstMessageId;
+
+  // 保存滚动位置
+  const m = g('messages');
+  const scrollPos = m.scrollTop;
+
+  // 保存并重新渲染
+  await saveConv(conv);
+  await renderMessages();
+
+  // 恢复滚动位置
+  requestAnimationFrame(() => {
+    m.scrollTop = scrollPos;
+  });
+}
+
+/**
+ * 删除分支
+ */
+async function deleteBranch(nodeId) {
+  if (isGenerating) return;
+
+  const conv = await getCurrentConv();
+  if (!conv || !conv.branchNodes[nodeId]) return;
+
+  const branchNode = conv.branchNodes[nodeId];
+  const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
+
+  if (currentIndex === -1) return;
+
+  // 删除当前分支下的所有消息
+  const branchToDelete = branchNode.branches[currentIndex];
+  const deleteMessagesRecursive = (msgId) => {
+    const msg = conv.messages[msgId];
+    const branchNodeChild = conv.branchNodes[msgId];
+
+    if (msg) {
+      // 是消息，递归删除子节点
+      if (msg.children) {
+        msg.children.forEach(childId => deleteMessagesRecursive(childId));
+      }
+      delete conv.messages[msgId];
+    } else if (branchNodeChild) {
+      // 是分支节点，删除所有分支
+      branchNodeChild.branches.forEach(branch => {
+        deleteMessagesRecursive(branch.firstMessageId);
+      });
+      delete conv.branchNodes[msgId];
+    }
+  };
+
+  deleteMessagesRecursive(branchToDelete.firstMessageId);
+
+  // 从分支节点中移除该分支
+  branchNode.branches.splice(currentIndex, 1);
+
+  // 如果只剩一个分支，删除分支节点，恢复直接连接
+  if (branchNode.branches.length === 1) {
+    const remainingBranch = branchNode.branches[0];
+    const parentMessage = conv.messages[branchNode.parentMessageId];
+
+    if (parentMessage) {
+      // 修改：将父消息的children从分支节点ID改为消息ID
+      const nodeIndex = parentMessage.children.indexOf(nodeId);
+      if (nodeIndex !== -1) {
+        parentMessage.children[nodeIndex] = remainingBranch.firstMessageId;
+      }
+
+      // 修改：更新子消息的parentId从分支节点ID改为父消息ID
+      const remainingMessage = conv.messages[remainingBranch.firstMessageId];
+      if (remainingMessage) {
+        remainingMessage.parentId = branchNode.parentMessageId;
+      }
+    }
+
+    // 删除分支节点
+    delete conv.branchNodes[nodeId];
+  } else if (branchNode.branches.length === 0) {
+    // 没有分支了，删除分支节点
+    const parentMessage = conv.messages[branchNode.parentMessageId];
+    if (parentMessage) {
+      const nodeIndex = parentMessage.children.indexOf(nodeId);
+      if (nodeIndex !== -1) {
+        parentMessage.children.splice(nodeIndex, 1);
+      }
+    }
+    delete conv.branchNodes[nodeId];
+  } else {
+    // 切换到前一个分支（或后一个）
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
+    branchNode.activeChildId = branchNode.branches[newIndex].firstMessageId;
+  }
+
+  // 保存并重新渲染
+  await saveConv(conv);
+  await renderMessages();
+}
+
+function setGenerating(on) {
+  isGenerating = on;
+  const btn=g('send-btn');
+  btn.classList.toggle('stop-mode',on);
+  g('send-icon').style.display = on?'none':'';
+  g('stop-icon').style.display = on?'':'none';
+  btn.title = on?'停止生成':'发送 (Ctrl+Enter)';
+}
+
+function setStatus(s,t) {
+  g('status-dot').className='status-dot '+s;
+  g('status-text').textContent=t||s;
+}
+
+async function updateStats() {
+  if (!currentConvId) {
+    g('msg-count').textContent = 0;
+    g('char-total').textContent = 0;
+    return;
+  }
+
+  const convs = await getConvs();
+  const conv = await getCurrentConv();
+  if (!conv) return;
+
+  const { messages } = buildRenderPath(conv);
+  const nonSystemMsgs = messages.filter(m => m.role !== 'system');
+
+  g('msg-count').textContent = nonSystemMsgs.length;
+
+  const total = messages.reduce((a, m) => a + m.content.length, 0);
+  g('char-total').textContent = total > 9999 ? (total / 1000).toFixed(1) + 'k' : total;
+}
+
+function updateCharCount(){ g('char-count').textContent=g('user-input').value.length; }
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,180)+'px'; }
+function updateInputHints(){
+  const input = g('user-input');
+  const sendBtn = g('send-btn');
+  const keyHint = g('key-hint');
+  if(enterToSend){
+    input.placeholder = '输入消息，Enter 发送…';
+    sendBtn.title = '发送 (Enter)';
+    keyHint.innerHTML = '<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 换行';
+  } else {
+    input.placeholder = '输入消息，Ctrl+Enter 发送…';
+    sendBtn.title = '发送 (Ctrl+Enter)';
+    keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
+  }
+}
+
+function updateFontSize(size){
+  messageFontSize = parseInt(size);
+  g('font-size-val').textContent = size + 'px';
+
+  const messagesContainer = g('messages');
+
+  // 找到当前视口顶部的第一个可见消息
+  const messageRows = messagesContainer.querySelectorAll('.message-row');
+  let topVisibleMessage = null;
+  let topOffset = 0;
+
+  for (const row of messageRows) {
+    const rect = row.getBoundingClientRect();
+    const containerRect = messagesContainer.getBoundingClientRect();
+
+    // 找到第一个在视口内的消息
+    if (rect.top >= containerRect.top && rect.top < containerRect.bottom) {
+      topVisibleMessage = row;
+      topOffset = rect.top - containerRect.top;
+      break;
+    }
+  }
+
+  // 应用新的字体大小
+  document.querySelectorAll('.bubble-content').forEach(el => {
+    el.style.fontSize = size + 'px';
+  });
+
+  // 恢复滚动位置，保持顶部可见消息在相同位置
+  if (topVisibleMessage) {
+    requestAnimationFrame(() => {
+      const newRect = topVisibleMessage.getBoundingClientRect();
+      const containerRect = messagesContainer.getBoundingClientRect();
+      const newTopOffset = newRect.top - containerRect.top;
+      const scrollAdjustment = newTopOffset - topOffset;
+      messagesContainer.scrollTop += scrollAdjustment;
+    });
+  }
+
+  saveSettings();
+}
+
+function updateMessageWidthPreview(width){
+  const messagesContainer = g('messages');
+
+  // 第一次拖动时，记录当前视口顶部的可见消息位置
+  if (messageWidthAdjustData === null) {
+    const messageRows = messagesContainer.querySelectorAll('.message-row');
+    let topVisibleMessage = null;
+    let topOffset = 0;
+
+    for (const row of messageRows) {
+      const rect = row.getBoundingClientRect();
+      const containerRect = messagesContainer.getBoundingClientRect();
+
+      if (rect.top >= containerRect.top && rect.top < containerRect.bottom) {
+        topVisibleMessage = row;
+        topOffset = rect.top - containerRect.top;
+        break;
+      }
+    }
+
+    messageWidthAdjustData = { topVisibleMessage, topOffset };
+  }
+
+  messageWidth = parseInt(width);
+  g('message-width-val').textContent = width + 'px';
+
+  // 只应用宽度，不调整滚动位置
+  document.querySelectorAll('.message-row').forEach(el => {
+    el.style.maxWidth = width + 'px';
+  });
+}
+
+function updateMessageWidthFinal(width){
+  messageWidth = parseInt(width);
+
+  // 恢复滚动位置，保持开始拖动时的顶部可见消息在相同位置
+  if (messageWidthAdjustData && messageWidthAdjustData.topVisibleMessage) {
+    const { topVisibleMessage, topOffset } = messageWidthAdjustData;
+
+    requestAnimationFrame(() => {
+      const messagesContainer = g('messages');
+      const newRect = topVisibleMessage.getBoundingClientRect();
+      const containerRect = messagesContainer.getBoundingClientRect();
+      const newTopOffset = newRect.top - containerRect.top;
+      const scrollAdjustment = newTopOffset - topOffset;
+      messagesContainer.scrollTop += scrollAdjustment;
+    });
+  }
+
+  // 清除记录的位置数据
+  messageWidthAdjustData = null;
+
+  saveSettings();
+}
+
+function resetFontSize(){
+  updateFontSize(14);
+  g('font-size-slider').value = 14;
+}
+
+function resetMessageWidth(){
+  updateMessageWidthPreview(1080);
+  updateMessageWidthFinal(1080);
+  g('message-width-slider').value = 1080;
+}
+
+function handleKey(e){
+  if(e.key==='Enter'){
+    if(enterToSend){
+      // Enter发送模式：Enter发送，Ctrl/Shift+Enter换行
+      if(!e.ctrlKey && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      } else {
+        // Ctrl+Enter 或 Shift+Enter 换行
+        e.preventDefault();
+        const textarea = e.target;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        textarea.value = value.substring(0, start) + '\n' + value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + 1;
+        autoResize(textarea);
+        updateCharCount();
+      }
+    } else {
+      // Ctrl+Enter发送模式：Ctrl/Shift+Enter发送，Enter换行
+      if(e.ctrlKey || e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+  }
+}
+
+function copyCode(btn) {
+  navigator.clipboard.writeText(btn.closest('.code-block-wrap').querySelector('code').innerText)
+    .then(()=>{ btn.textContent='已复制'; setTimeout(()=>btn.textContent='复制',1500); });
+}
+
+function showToast(msg) {
+  const t=g('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ══ PANEL / COLLAPSE ══
+function switchPanel(name) {
+  const panel=g('sidebar-panel');
+  const sp=g('panel-settings'), hp=g('panel-history');
+  const rs=g('rail-settings'), rh=g('rail-history');
+  const rsm=g('rail-settings-mobile'), rhm=g('rail-history-mobile');
+  if(name===activePanel||!name) {
+    activePanel=null; panel.classList.add('hidden');
+    rs.classList.remove('active'); rh.classList.remove('active');
+    if(rsm) rsm.classList.remove('active');
+    if(rhm) rhm.classList.remove('active');
+    saveSettings();
+    return;
+  }
+  activePanel=name; panel.classList.remove('hidden');
+  sp.style.display = name==='settings'?'flex':'none';
+  hp.style.display  = name==='history' ?'flex':'none';
+  rs.classList.toggle('active',name==='settings');
+  rh.classList.toggle('active',name==='history');
+  if(rsm) rsm.classList.toggle('active',name==='settings');
+  if(rhm) rhm.classList.toggle('active',name==='history');
+  saveSettings();
+}
+
+// 仅用于 loadSettings 恢复布局，不触发 saveSettings
+function restorePanel(name) {
+  const panel=g('sidebar-panel');
+  const sp=g('panel-settings'), hp=g('panel-history');
+  const rs=g('rail-settings'), rh=g('rail-history');
+  const rsm=g('rail-settings-mobile'), rhm=g('rail-history-mobile');
+  if (!name) {
+    activePanel=null; panel.classList.add('hidden');
+    rs.classList.remove('active'); rh.classList.remove('active');
+    if(rsm) rsm.classList.remove('active');
+    if(rhm) rhm.classList.remove('active');
+    return;
+  }
+  activePanel=name; panel.classList.remove('hidden');
+  sp.style.display = name==='settings'?'flex':'none';
+  hp.style.display  = name==='history' ?'flex':'none';
+  rs.classList.toggle('active',name==='settings');
+  rh.classList.toggle('active',name==='history');
+  if(rsm) rsm.classList.toggle('active',name==='settings');
+  if(rhm) rhm.classList.toggle('active',name==='history');
+}
+
+function toggleCollapse(key) {
+  const body=g('body-'+key), arrow=g('arrow-'+key);
+  const closing=!body.classList.contains('closed');
+  body.classList.toggle('closed',closing);
+  arrow.classList.toggle('open',!closing);
+  saveSettings();
+}
+
+function getCollapseStates() {
+  const keys = ['api','gen','opts','sys'];
+  const states = {};
+  keys.forEach(k => { states[k] = !g('body-'+k).classList.contains('closed'); });
+  return states;
+}
+
+function applyCollapseStates(states) {
+  Object.entries(states).forEach(([k, open]) => {
+    const body = g('body-'+k), arrow = g('arrow-'+k);
+    if (!body) return;
+    body.classList.toggle('closed', !open);
+    arrow.classList.toggle('open', open);
+  });
+}
+
+async function toggleOpt(key) {
+  if(key==='stream'){ streamEnabled=!streamEnabled; g('stream-toggle').classList.toggle('on',streamEnabled); }
+  if(key==='md'){
+    const m = g('messages');
+    const scrollPos = m.scrollTop;
+    mdEnabled=!mdEnabled;
+    g('md-toggle').classList.toggle('on',mdEnabled);
+    await renderMessages();
+    requestAnimationFrame(() => {
+      m.scrollTop = scrollPos;
+    });
+  }
+  if(key==='hl'){
+    const m = g('messages');
+    const scrollPos = m.scrollTop;
+    hlEnabled=!hlEnabled;
+    g('hl-toggle').classList.toggle('on',hlEnabled);
+    await renderMessages();
+    requestAnimationFrame(() => {
+      m.scrollTop = scrollPos;
+    });
+  }
+  if(key==='enterSend'){
+    enterToSend=!enterToSend;
+    g('enter-send-toggle').classList.toggle('on',enterToSend);
+    updateInputHints();
+  }
+  saveSettings();
+}
+
+// ══ INIT ══
+(async function init(){
+  // 服务器模式：检查登录状态
+  if (useServerStorage) {
+    const authData = await serverFetch('/api/auth/me');
+    if (!authData.success) {
+      window.location.href = '/login';
+      return;
+    }
+    console.log('已登录用户:', authData.user.username);
+  }
+
+  await loadSettings();
+  const convs = await getConvs();
+  const savedId = await getData('A');
+  if(convs.length>0){
+    const target = savedId ? convs.find(c=>c.id===savedId) : convs[0];
+    if(target){
+      currentConvId=target.id;
+      renderMessages(); renderConvList(); updateStats();
+      // 恢复滚动位置
+      if (target.scrollPosition !== undefined && target.scrollPosition !== null) {
+        setTimeout(() => {
+          const messagesContainer = g('messages');
+          if (messagesContainer) {
+            messagesContainer.scrollTop = target.scrollPosition;
+          }
+        }, 50);
+      } else {
+        scrollToBottom(true);  // 首次加载对话时强制滚动到底部
+      }
+    }
+    else await newChat(false);
+  } else { await newChat(false); }
+
+  // 页面关闭前保存滚动位置
+  if (isElectron) {
+    // Electron 环境：监听主进程发送的关闭事件
+    window.electronAPI.onAppClosing(async () => {
+      await saveCurrentConv();
+      window.electronAPI.saveCompleted();
+    });
+  } else {
+    // 浏览器环境：使用 beforeunload
+    window.addEventListener('beforeunload', async (e) => {
+      await saveCurrentConv();
+    });
+  }
+
+  // 定期保存滚动位置（每5秒）
+  // 滚动位置保存 - 使用防抖优化
+  let scrollSaveTimeout = null;
+  const messagesContainer = g('messages');
+
+  if (messagesContainer) {
+    messagesContainer.addEventListener('scroll', () => {
+      if (currentConvId && !isGenerating) {
+        // 清除之前的保存计划
+        clearTimeout(scrollSaveTimeout);
+
+        // 500ms 后保存（用户停止滚动后才保存）
+        scrollSaveTimeout = setTimeout(async () => {
+          const convs = await getConvs();
+          const conv = await getCurrentConv();
+          if (conv) {
+            conv.scrollPosition = messagesContainer.scrollTop;
+            await saveConv(conv, false);
+          }
+        }, 500);
+      }
+    });
+
+    // 事件委托：处理消息气泡上的所有操作
+    messagesContainer.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+
+      const action = target.dataset.action;
+      const row = target.closest('.message-row');
+
+      if (action === 'retry') {
+        retryMessage(target);
+      } else if (action === 'copy') {
+        copyMessage(target);
+      } else if (action === 'edit') {
+        editMessage(target);
+      } else if (action === 'delete') {
+        deleteMessage(target);
+      } else if (action === 'branch-prev') {
+        const nodeId = target.dataset.nodeId;
+        switchBranch(nodeId, -1);
+      } else if (action === 'branch-next') {
+        const nodeId = target.dataset.nodeId;
+        switchBranch(nodeId, 1);
+      }
+    });
+  }
+
+  document.addEventListener('click', e => {
+    const sel = g('preset-selector');
+    if (sel && !sel.contains(e.target)) {
+      g('preset-dropdown').classList.add('hidden');
+      g('preset-btn').classList.remove('open');
+    }
+  });
+})();
+</script>
+</body>
+</html>
