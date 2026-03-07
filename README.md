@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -206,8 +206,8 @@ xiaopacai-AI-chat/
 
 ## 📝 版本历史
 
-### v1.4.0 (2026-03-08)
-- 🚀 版本号升级到 1.4.0（桌面端与 Web 端统一）
+### v1.4.1 (2026-03-08)
+- 🚀 版本号升级到 1.4.1（桌面端与 Web 端统一）
 - 🎨 默认主题改为亮色（桌面端与 Web 端）
 - ✨ 新增 AI 消息级模型记录与展示，历史消息显示其生成时模型
 - 🧭 优化下拉菜单交互：打开一个菜单会自动关闭其他菜单

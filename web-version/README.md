@@ -2,7 +2,7 @@
 
 基于文件系统的多用户 AI 聊天应用服务器版本。
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue)
 
 ## 特性
 
@@ -187,8 +187,8 @@ A: 可以，但建议：
 
 ## 版本信息
 
-### v1.4.0 (2026-03-08)
-- 🚀 Web 版本号升级到 1.4.0
+### v1.4.1 (2026-03-08)
+- 🚀 Web 版本号升级到 1.4.1
 - 🔐 Windows 启动脚本首次初始化 `.env` 时自动生成随机 `SESSION_SECRET`
 - 📱 移动端输入栏可视区域适配增强，减少浏览器工具栏遮挡问题
 - ⚡ 对话加载与缓存逻辑优化（元数据/完整内容分层缓存）
