@@ -4,9 +4,10 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs').promises;
 const bcrypt = require('bcryptjs');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = process.env.PORT || 5638;
+const PORT = process.env.PORT || 3000;
 
 // 数据目录
 const DATA_DIR = path.join(__dirname, 'data');
@@ -74,8 +75,9 @@ app.use(session({
   }
 }));
 
-// 静态文件服务
-app.use(express.static(__dirname));
+// 静态文件服务（仅暴露前端必需资源，避免泄露 data/.env 等敏感文件）
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/lib', express.static(path.join(__dirname, 'lib')));
 
 // 认证中间件
 function requireAuth(req, res, next) {
@@ -220,6 +222,39 @@ app.post('/api/settings', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('保存设置错误:', error);
     res.json({ success: false, error: '保存设置失败' });
+  }
+});
+
+// 获取当前活动对话 ID
+app.get('/api/active-conversation', requireAuth, async (req, res) => {
+  try {
+    const activeFile = path.join(getUserDir(req.session.username), 'active.json');
+
+    try {
+      const data = await fs.readFile(activeFile, 'utf8');
+      res.json({ success: true, data: JSON.parse(data) });
+    } catch {
+      res.json({ success: true, data: null });
+    }
+  } catch (error) {
+    console.error('获取活动对话错误:', error);
+    res.json({ success: false, error: '获取活动对话失败' });
+  }
+});
+
+// 保存当前活动对话 ID
+app.post('/api/active-conversation', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.body;
+    const userDir = getUserDir(req.session.username);
+    const activeFile = path.join(userDir, 'active.json');
+
+    await fs.mkdir(userDir, { recursive: true });
+    await fs.writeFile(activeFile, JSON.stringify(id ?? null, null, 2));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('保存活动对话错误:', error);
+    res.json({ success: false, error: '保存活动对话失败' });
   }
 });
 

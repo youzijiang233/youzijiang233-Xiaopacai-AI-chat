@@ -1527,9 +1527,13 @@ async function getData(key) {
     }
     return null;
   } else if (useServerStorage) {
-    // 服务器模式：只支持设置(S)
+    // 服务器模式：支持设置(S)和活动对话(A)
     if (key === 'S') {
       const data = await serverFetch('/api/settings');
+      return data.success ? data.data : null;
+    }
+    if (key === 'A') {
+      const data = await serverFetch('/api/active-conversation');
       return data.success ? data.data : null;
     }
     return null;
@@ -1550,12 +1554,18 @@ async function setData(key, value) {
     const data = JSON.stringify(value, null, 2);
     await window.electronAPI.writeData(filename, data);
   } else if (useServerStorage) {
-    // 服务器模式：只支持设置(S)
+    // 服务器模式：支持设置(S)和活动对话(A)
     if (key === 'S') {
       await serverFetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: value })
+      });
+    } else if (key === 'A') {
+      await serverFetch('/api/active-conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: value })
       });
     }
   } else {
@@ -1939,10 +1949,8 @@ async function saveConv(conv, updateTime = true) {
     conv.updatedAt = Date.now();
   }
 
-  // 清除缓存，因为数据已修改
-  convsCache = null;
-  fullConvCache.delete(conv.id); // 清除完整对话缓存
-  convsCache = null;
+  // 更新完整对话缓存
+  fullConvCache.set(conv.id, { conv, timestamp: Date.now() });
 
   // 自动生成标题（仅在第一次且标题为"新对话"时）
   const oldTitle = conv.title;
@@ -1992,9 +2000,21 @@ async function saveConv(conv, updateTime = true) {
     await setData('C', convs);
   }
 
+  // 增量更新对话列表缓存，避免频繁全量刷新
+  if (convsCache) {
+    const idx = convsCache.findIndex(c => c.id === conv.id);
+    if (idx >= 0) {
+      convsCache[idx] = conv;
+    } else {
+      convsCache.unshift(conv);
+    }
+    convsCache.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    convsCacheTime = Date.now();
+  }
+
   // 如果更新了时间戳，重新渲染对话列表以更新顺序
   if (updateTime) {
-    renderConvList(await getConvs(true)); // 强制刷新缓存
+    renderConvList(convsCache || await getConvs());
   }
 }
 
@@ -2046,13 +2066,8 @@ async function saveCurrentConv() {
     conv.scrollPosition = messagesContainer.scrollTop;
   }
 
-  // 深拷贝整个对话对象
-  conv.messages = JSON.parse(JSON.stringify(conv.messages || {}));
-  conv.branchNodes = JSON.parse(JSON.stringify(conv.branchNodes || {}));
-
   // 保存单个对话文件（不更新时间戳）
   await saveConv(conv, false);
-  renderConvList(await getConvs(true)); // 强制刷新缓存
 }
 
 /**
@@ -2096,7 +2111,7 @@ async function newChat(saveCurrent = true) {
   await setData('A', id);
 
   renderMessages();
-  renderConvList(await getConvs(true)); // 强制刷新缓存
+  renderConvList();
   updateStats();
 }
 
@@ -2849,7 +2864,6 @@ async function sendMessage(retryText = null, isRetry = false) {
 async function sendMessageToTree(userText, aiMessageId) {
   if (isGenerating) return;
 
-  const convs = await getConvs();
   const conv = await getCurrentConv();
   if (!conv || !conv.messages[aiMessageId]) return;
 
@@ -3247,7 +3261,6 @@ async function deleteMessage(btn) {
   const messageId = row.dataset.messageId;
   if (!messageId) return;
 
-  const convs = await getConvs();
   const conv = await getCurrentConv();
   if (!conv || !conv.messages[messageId]) return;
 
@@ -3364,7 +3377,6 @@ async function retryMessage(btn) {
   const messageId = row.dataset.messageId;
   if (!messageId) return;
 
-  const convs = await getConvs();
   const conv = await getCurrentConv();
   if (!conv || !conv.messages[messageId]) return;
 
@@ -3922,7 +3934,6 @@ async function updateStats() {
     return;
   }
 
-  const convs = await getConvs();
   const conv = await getCurrentConv();
   if (!conv) return;
 
@@ -4215,23 +4226,8 @@ async function toggleOpt(key) {
   const convs = await getConvs();
   const savedId = await getData('A');
   if(convs.length>0){
-    const target = savedId ? convs.find(c=>c.id===savedId) : convs[0];
-    if(target){
-      currentConvId=target.id;
-      renderMessages(); renderConvList(); updateStats();
-      // 恢复滚动位置
-      if (target.scrollPosition !== undefined && target.scrollPosition !== null) {
-        setTimeout(() => {
-          const messagesContainer = g('messages');
-          if (messagesContainer) {
-            messagesContainer.scrollTop = target.scrollPosition;
-          }
-        }, 50);
-      } else {
-        scrollToBottom(true);  // 首次加载对话时强制滚动到底部
-      }
-    }
-    else await newChat(false);
+    const target = savedId ? (convs.find(c=>c.id===savedId) || convs[0]) : convs[0];
+    await loadConv(target.id);
   } else { await newChat(false); }
 
   // 页面关闭前保存滚动位置
@@ -4261,7 +4257,6 @@ async function toggleOpt(key) {
 
         // 500ms 后保存（用户停止滚动后才保存）
         scrollSaveTimeout = setTimeout(async () => {
-          const convs = await getConvs();
           const conv = await getCurrentConv();
           if (conv) {
             conv.scrollPosition = messagesContainer.scrollTop;
