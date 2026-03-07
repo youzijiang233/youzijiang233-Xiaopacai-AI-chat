@@ -238,6 +238,18 @@ app.post('/api/conversations', requireAuth, async (req, res) => {
     const title = conversation.title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
     const filename = path.join(convsDir, `${title}_${conversation.id}.json`);
 
+    // 删除该对话ID的所有旧文件（处理标题改变的情况）
+    try {
+      const files = await fs.readdir(convsDir);
+      const oldFiles = files.filter(f => f.endsWith(`_${conversation.id}.json`) && f !== `${title}_${conversation.id}.json`);
+
+      for (const oldFile of oldFiles) {
+        await fs.unlink(path.join(convsDir, oldFile));
+      }
+    } catch (e) {
+      // 忽略删除旧文件的错误
+    }
+
     await fs.writeFile(filename, JSON.stringify(conversation, null, 2));
     res.json({ success: true });
   } catch (error) {

@@ -871,7 +871,7 @@ function buildRenderPath(conv) {
   while (currentId) {
     // 检查当前ID是消息还是分支节点
     const message = conv.messages[currentId];
-    const branchNode = conv.branchNodes[currentId];
+    const branchNode = conv.branchNodes && conv.branchNodes[currentId];
 
     if (message) {
       // 是消息
@@ -969,7 +969,7 @@ let activePresetId = null;
 let fullApiKeys = {}; // { presetId: plaintext key }
 
 function getDefaultPresets() {
-  return [{ id: 'preset_default', name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'deepseek/deepseek-chat-v3.1', format: 'openai', provider: '' }];
+  return [{ id: 'preset_default', name: '默认', url: 'https://once.novai.su/v1/chat/completions', model: '', format: 'openai', provider: '' }];
 }
 
 function getActivePreset() {
@@ -1391,24 +1391,47 @@ async function deletePreset(e, id) {
 
 // ══ MARKED ══
 marked.setOptions({ breaks: true, gfm: true });
+
+// Markdown 渲染缓存
+const mdRenderCache = new Map();
+const MAX_CACHE_SIZE = 200;
+
 const mdRenderer = new marked.Renderer();
 mdRenderer.code = function(code, lang) {
   const language = lang || 'plaintext';
-  let hl = escapeHtml(code);
+  const escapedCode = escapeHtml(code);
+
+  // 延迟代码高亮，先返回未高亮的代码
   if (hlEnabled) {
-    try {
-      hl = hljs.getLanguage(language)
-        ? hljs.highlight(code, { language }).value
-        : hljs.highlightAuto(code).value;
-    } catch(e) {}
+    // 使用 data-language 标记需要高亮的代码块
+    return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs" data-language="${language}" data-needs-highlight="true">${escapedCode}</code></pre></div>`;
   }
-  return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs">${hl}</code></pre></div>`;
+
+  return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs">${escapedCode}</code></pre></div>`;
 };
 marked.use({ renderer: mdRenderer });
 
 function renderMd(text) {
   if (!mdEnabled) return `<span class="plain-text">${escapeHtml(text)}</span>`;
-  return marked.parse(text);
+
+  // 检查缓存
+  if (mdRenderCache.has(text)) {
+    return mdRenderCache.get(text);
+  }
+
+  // 渲染 Markdown
+  const rendered = marked.parse(text);
+
+  // 存入缓存
+  mdRenderCache.set(text, rendered);
+
+  // 限制缓存大小（LRU 策略）
+  if (mdRenderCache.size > MAX_CACHE_SIZE) {
+    const firstKey = mdRenderCache.keys().next().value;
+    mdRenderCache.delete(firstKey);
+  }
+
+  return rendered;
 }
 function escapeHtml(t) {
   return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1636,7 +1659,7 @@ async function loadSettings() {
   } else {
     apiPresets = getDefaultPresets();
     activePresetId = apiPresets[0].id;
-    fullApiKeys[activePresetId] = '';
+    fullApiKeys[activePresetId] = 'sk-wRfzWMRn7kKLlowauPZcI24zMbWBFc4tAQ8rkqAWxS0lk6vA';
   }
 
   // 填充当前预设字段
@@ -2211,8 +2234,14 @@ function startRenameConv(e, id) {
 async function duplicateConv(id, e) {
   e && e.stopPropagation();
   const convs = await getConvs();
-  const conv = convs.find(c => c.id === id);
+  let conv = convs.find(c => c.id === id);
   if (!conv) return;
+
+  // 如果是服务器模式且对话没有 messages（只有元数据），则加载完整内容
+  if (useServerStorage && !isElectron && !conv.messages) {
+    conv = await loadConvFromServer(id);
+    if (!conv) return;
+  }
 
   // 深拷贝对话对象
   const newConv = JSON.parse(JSON.stringify(conv));
@@ -2261,9 +2290,10 @@ async function duplicateConv(id, e) {
   const newBranchNodes = {};
   const branchNodeIdMap = {};
 
-  for (const nodeId in newConv.branchNodes) {
-    const oldNode = newConv.branchNodes[nodeId];
-    // 提取时间戳部分
+  if (newConv.branchNodes) {
+    for (const nodeId in newConv.branchNodes) {
+      const oldNode = newConv.branchNodes[nodeId];
+      // 提取时间戳部分
     const timestamp = nodeId.substring(0, 13);
     const random = Math.random().toString(36).substring(2, 5);
     const newNodeId = timestamp + random;
@@ -2281,6 +2311,7 @@ async function duplicateConv(id, e) {
         firstMessageId: idMap[branch.firstMessageId] || branch.firstMessageId
       }))
     };
+  }
   }
 
   newConv.messages = newMessages;
@@ -2380,12 +2411,56 @@ async function renderMessages() {
     return;
   }
 
+  // 使用 DocumentFragment 批量插入 DOM，提升性能
+  const fragment = document.createDocumentFragment();
   container.innerHTML = '';
 
-  // 渲染每条消息
+  // 渲染每条消息到 fragment
   visibleMessages.forEach(msg => {
-    appendBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id));
+    const bubble = createBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id));
+    fragment.appendChild(bubble);
   });
+
+  // 一次性插入所有消息
+  container.appendChild(fragment);
+
+  // 延迟高亮代码块（使用 requestIdleCallback 或 setTimeout）
+  highlightCodeBlocks();
+}
+
+// 延迟高亮代码块
+function highlightCodeBlocks() {
+  const highlightFn = () => {
+    const codeBlocks = document.querySelectorAll('code[data-needs-highlight="true"]');
+
+    codeBlocks.forEach(block => {
+      const language = block.getAttribute('data-language');
+      const code = block.textContent;
+
+      try {
+        let highlighted;
+        if (hljs.getLanguage(language)) {
+          highlighted = hljs.highlight(code, { language }).value;
+        } else {
+          highlighted = hljs.highlightAuto(code).value;
+        }
+
+        block.innerHTML = highlighted;
+        block.removeAttribute('data-needs-highlight');
+        block.setAttribute('data-highlighted', 'true');
+      } catch(e) {
+        console.warn('代码高亮失败:', e);
+        block.removeAttribute('data-needs-highlight');
+      }
+    });
+  };
+
+  // 使用 requestIdleCallback 在浏览器空闲时高亮，降级到 setTimeout
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(highlightFn, { timeout: 1000 });
+  } else {
+    setTimeout(highlightFn, 50);
+  }
 }
 
 // ══ SEND / STOP ══
@@ -2515,7 +2590,7 @@ async function sendMessage(retryText = null, isRetry = false) {
     while (currentId && currentId !== aiMessageId) {
       // 检查是消息还是分支节点
       const msg = conv.messages[currentId];
-      const branchNode = conv.branchNodes[currentId];
+      const branchNode = conv.branchNodes && conv.branchNodes[currentId];
 
       if (msg) {
         // 是消息
@@ -2708,12 +2783,25 @@ async function sendMessage(retryText = null, isRetry = false) {
     }
 
     aiMessage.content = fullText;
-    const updatedConvs = await getConvs();
-    const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-    if (updatedConv && updatedConv.messages[aiMessageId]) {
-      updatedConv.messages[aiMessageId].content = fullText;
-      await saveConv(updatedConv);
+
+    // 在保存前重新加载完整对话，确保数据一致性
+    let convToSave = conv;
+    if (useServerStorage && !isElectron) {
+      // 服务器模式：重新加载完整对话
+      const freshConv = await loadConvFromServer(currentConvId);
+      if (freshConv && freshConv.messages) {
+        // 确保 AI 消息存在，如果不存在则添加
+        if (!freshConv.messages[aiMessageId]) {
+          freshConv.messages[aiMessageId] = aiMessage;
+        } else {
+          // 更新 AI 消息内容
+          freshConv.messages[aiMessageId].content = fullText;
+        }
+        convToSave = freshConv;
+      }
     }
+
+    await saveConv(convToSave);
 
     setStatus('green', '就绪');
 
@@ -2722,12 +2810,21 @@ async function sendMessage(retryText = null, isRetry = false) {
       if (fullText) {
         contentEl.innerHTML = renderMd(fullText) + '<span class="stop-marker">[ 已停止 ]</span>';
         aiMessage.content = fullText;
-        const updatedConvs = await getConvs();
-        const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-        if (updatedConv && updatedConv.messages[aiMessageId]) {
-          updatedConv.messages[aiMessageId].content = fullText;
-          await saveConv(updatedConv);
+        // 在保存前重新加载完整对话，确保数据一致性
+        let convToSave = conv;
+        if (useServerStorage && !isElectron) {
+          const freshConv = await loadConvFromServer(currentConvId);
+          if (freshConv && freshConv.messages) {
+            // 确保 AI 消息存在
+            if (!freshConv.messages[aiMessageId]) {
+              freshConv.messages[aiMessageId] = aiMessage;
+            } else {
+              freshConv.messages[aiMessageId].content = fullText;
+            }
+            convToSave = freshConv;
+          }
         }
+        await saveConv(convToSave);
       } else {
         aiRow.remove();
       }
@@ -2984,12 +3081,24 @@ async function sendMessageToTree(userText, aiMessageId) {
     contentEl.innerHTML = renderMd(fullText);
     aiMessage.content = fullText;
 
-    const updatedConvs = await getConvs();
-    const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-    if (updatedConv && updatedConv.messages[aiMessageId]) {
-      updatedConv.messages[aiMessageId].content = fullText;
-      await saveConv(updatedConv);
+    // 在保存前重新加载完整对话，确保数据一致性
+    let convToSave = conv;
+    if (useServerStorage && !isElectron) {
+      // 服务器模式：重新加载完整对话
+      const freshConv = await loadConvFromServer(currentConvId);
+      if (freshConv && freshConv.messages) {
+        // 确保 AI 消息存在，如果不存在则添加
+        if (!freshConv.messages[aiMessageId]) {
+          freshConv.messages[aiMessageId] = aiMessage;
+        } else {
+          // 更新 AI 消息内容
+          freshConv.messages[aiMessageId].content = fullText;
+        }
+        convToSave = freshConv;
+      }
     }
+
+    await saveConv(convToSave);
 
     setStatus('green', '就绪');
 
@@ -2998,12 +3107,21 @@ async function sendMessageToTree(userText, aiMessageId) {
       if (fullText) {
         contentEl.innerHTML = renderMd(fullText) + '<span class="stop-marker">[ 已停止 ]</span>';
         aiMessage.content = fullText;
-        const updatedConvs = await getConvs();
-        const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-        if (updatedConv && updatedConv.messages[aiMessageId]) {
-          updatedConv.messages[aiMessageId].content = fullText;
-          await saveConv(updatedConv);
+        // 在保存前重新加载完整对话，确保数据一致性
+        let convToSave = conv;
+        if (useServerStorage && !isElectron) {
+          const freshConv = await loadConvFromServer(currentConvId);
+          if (freshConv && freshConv.messages) {
+            // 确保 AI 消息存在
+            if (!freshConv.messages[aiMessageId]) {
+              freshConv.messages[aiMessageId] = aiMessage;
+            } else {
+              freshConv.messages[aiMessageId].content = fullText;
+            }
+            convToSave = freshConv;
+          }
         }
+        await saveConv(convToSave);
       } else {
         aiRow.remove();
       }
@@ -3032,6 +3150,12 @@ function g(id){ return document.getElementById(id); }
  * @param {object} branchNode - 分支节点（如果该消息是分支的第一条消息）
  */
 function appendBubble(role, text, empty=false, messageId=null, branchNode=null) {
+  const bubble = createBubble(role, text, empty, messageId, branchNode);
+  g('messages').appendChild(bubble);
+  return bubble;
+}
+
+function createBubble(role, text, empty=false, messageId=null, branchNode=null) {
   const isUser = role==='user';
   const row = document.createElement('div');
   row.className = 'message-row' + (isUser ? ' user-row' : '');
@@ -3081,7 +3205,6 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null) 
       ${actions}
     </div>`;
   row.style.maxWidth = messageWidth + 'px';
-  g('messages').appendChild(row);
   return row;
 }
 
@@ -3134,7 +3257,7 @@ async function deleteMessage(btn) {
 
   // 修改：检查parentId是消息还是分支节点
   const parentMessage = conv.messages[parentId];
-  const parentBranchNode = conv.branchNodes[parentId];
+  const parentBranchNode = conv.branchNodes && conv.branchNodes[parentId];
 
   // 判断删除策略
   if (children.length > 0 && parentBranchNode) {
@@ -3148,7 +3271,7 @@ async function deleteMessage(btn) {
 
     // 将子节点的parentId改为父消息ID
     const childMessage = conv.messages[childId];
-    const childBranchNode = conv.branchNodes[childId];
+    const childBranchNode = conv.branchNodes && conv.branchNodes[childId];
     if (childMessage) {
       childMessage.parentId = parentId;
     } else if (childBranchNode) {
@@ -3257,7 +3380,7 @@ async function retryMessage(btn) {
     const firstChild = message.children.length > 0 ? message.children[0] : null;
 
     if (firstChild) {
-      if (conv.branchNodes[firstChild]) {
+      if (conv.branchNodes && conv.branchNodes[firstChild]) {
         // 子节点已经是分支节点，直接使用
         branchNode = conv.branchNodes[firstChild];
       } else if (conv.messages[firstChild]) {
@@ -3332,7 +3455,7 @@ async function retryMessage(btn) {
 
     // 检查父节点是消息还是分支节点
     const parentMessage = conv.messages[parentId];
-    const parentBranchNode = conv.branchNodes[parentId];
+    const parentBranchNode = conv.branchNodes && conv.branchNodes[parentId];
 
     if (!parentMessage && !parentBranchNode) return;
 
@@ -3570,7 +3693,7 @@ function editMessage(btn) {
 
       // 检查父节点是消息还是分支节点
       const parentMessage = conv.messages[parentId];
-      const parentBranchNode = conv.branchNodes[parentId];
+      const parentBranchNode = conv.branchNodes && conv.branchNodes[parentId];
 
       if (!parentMessage && !parentBranchNode) return;
 
@@ -3669,7 +3792,7 @@ function editMessage(btn) {
  */
 async function switchBranch(nodeId, direction) {
   const conv = await getCurrentConv();
-  if (!conv || !conv.branchNodes[nodeId]) return;
+  if (!conv || !conv.branchNodes || !conv.branchNodes[nodeId]) return;
 
   const branchNode = conv.branchNodes[nodeId];
   const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
@@ -3703,7 +3826,7 @@ async function deleteBranch(nodeId) {
   if (isGenerating) return;
 
   const conv = await getCurrentConv();
-  if (!conv || !conv.branchNodes[nodeId]) return;
+  if (!conv || !conv.branchNodes || !conv.branchNodes[nodeId]) return;
 
   const branchNode = conv.branchNodes[nodeId];
   const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
@@ -3714,7 +3837,7 @@ async function deleteBranch(nodeId) {
   const branchToDelete = branchNode.branches[currentIndex];
   const deleteMessagesRecursive = (msgId) => {
     const msg = conv.messages[msgId];
-    const branchNodeChild = conv.branchNodes[msgId];
+    const branchNodeChild = conv.branchNodes && conv.branchNodes[msgId];
 
     if (msg) {
       // 是消息，递归删除子节点
