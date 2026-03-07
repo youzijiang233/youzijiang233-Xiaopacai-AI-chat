@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - Xiaopacai AI Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f14; --bg2:#13161e; --bg3:#1a1e29;
+  --border:#252b40; --border2:#3a4570;
+  --text:#e8eaf2; --text2:#9aa3c2; --text3:#5c6480;
+  --accent:#5b8dee; --accent2:#4070d4;
+  --red:#e05c6c;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.login-container {
+  width:100%;
+  max-width:420px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:40px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+
+.logo {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:32px;
+}
+
+.logo-dot {
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 12px var(--accent);
+}
+
+.logo-text {
+  font-size:24px;
+  font-weight:600;
+  letter-spacing:-0.5px;
+}
+
+.tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:28px;
+  background:var(--bg3);
+  padding:4px;
+  border-radius:10px;
+}
+
+.tab {
+  flex:1;
+  padding:10px;
+  border:none;
+  background:transparent;
+  color:var(--text2);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  border-radius:8px;
+  transition:all 0.2s;
+}
+
+.tab.active {
+  background:var(--bg2);
+  color:var(--text);
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+
+.form-group {
+  margin-bottom:20px;
+}
+
+.form-label {
+  display:block;
+  font-size:13px;
+  font-weight:500;
+  color:var(--text2);
+  margin-bottom:8px;
+}
+
+.form-input {
+  width:100%;
+  padding:12px 16px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  transition:all 0.2s;
+}
+
+.form-input:focus {
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(91,141,238,0.1);
+}
+
+.error-message {
+  margin-top:8px;
+  padding:10px 14px;
+  background:rgba(224,92,108,0.1);
+  border:1px solid rgba(224,92,108,0.3);
+  border-radius:8px;
+  color:var(--red);
+  font-size:13px;
+  display:none;
+}
+
+.error-message.show {
+  display:block;
+}
+
+.btn-submit {
+  width:100%;
+  padding:13px;
+  background:var(--accent);
+  color:white;
+  border:none;
+  border-radius:8px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all 0.2s;
+  margin-top:24px;
+}
+
+.btn-submit:hover {
+  background:var(--accent2);
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(91,141,238,0.3);
+}
+
+.btn-submit:active {
+  transform:translateY(0);
+}
+
+.btn-submit:disabled {
+  opacity:0.5;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.form-hint {
+  margin-top:12px;
+  font-size:12px;
+  color:var(--text3);
+  text-align:center;
+}
+
+.loading {
+  display:inline-block;
+  width:14px;
+  height:14px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top-color:white;
+  border-radius:50%;
+  animation:spin 0.6s linear infinite;
+  margin-right:8px;
+}
+
+@keyframes spin {
+  to { transform:rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div class="logo-text">Xiaopacai AI Chat</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="login">登录</button>
+    <button class="tab" data-tab="register">注册</button>
+  </div>
+
+  <!-- 登录表单 -->
+  <form id="loginForm" style="display:block;">
+    <div class="form-group">
+      <label class="form-label">用户名</label>
+      <input type="text" class="form-input" id="loginUsername" placeholder="请输入用户名" autocomplete="username" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">密码</label>
+      <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码" autocomplete="current-password" required>
+    </div>
+    <div class="error-message" id="loginError"></div>
+    <button type="submit" class="btn-submit" id="loginBtn">登录</button>
+  </form>
+
+  <!-- 注册表单 -->
+  <form id="registerForm" style="display:none;">
+    <div class="form-group">
+      <label class="form-label">用户名</label>
+      <input type="text" class="form-input" id="registerUsername" placeholder="3-20个字符" autocomplete="username" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">密码</label>
+      <input type="password" class="form-input" id="registerPassword" placeholder="至少6个字符" autocomplete="new-password" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">确认密码</label>
+      <input type="password" class="form-input" id="registerPasswordConfirm" placeholder="再次输入密码" autocomplete="new-password" required>
+    </div>
+    <div class="error-message" id="registerError"></div>
+    <button type="submit" class="btn-submit" id="registerBtn">注册</button>
+    <div class="form-hint">注册后将自动登录</div>
+  </form>
+</div>
+
+<script>
+// 切换标签
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const tabName = tab.dataset.tab;
+
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    document.getElementById('loginForm').style.display = tabName === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tabName === 'register' ? 'block' : 'none';
+
+    // 清除错误消息
+    document.getElementById('loginError').classList.remove('show');
+    document.getElementById('registerError').classList.remove('show');
+  });
+});
+
+// 显示错误
+function showError(formType, message) {
+  const errorEl = document.getElementById(formType + 'Error');
+  errorEl.textContent = message;
+  errorEl.classList.add('show');
+}
+
+// 隐藏错误
+function hideError(formType) {
+  document.getElementById(formType + 'Error').classList.remove('show');
+}
+
+// 登录
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError('login');
+
+  const btn = document.getElementById('loginBtn');
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!username || !password) {
+    showError('login', '请填写完整信息');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span>登录中...';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      window.location.href = '/';
+    } else {
+      showError('login', data.error || '登录失败');
+      btn.disabled = false;
+      btn.textContent = '登录';
+    }
+  } catch (error) {
+    showError('login', '网络错误，请重试');
+    btn.disabled = false;
+    btn.textContent = '登录';
+  }
+});
+
+// 注册
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError('register');
+
+  const btn = document.getElementById('registerBtn');
+  const username = document.getElementById('registerUsername').value.trim();
+  const password = document.getElementById('registerPassword').value;
+  const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+
+  if (!username || !password || !passwordConfirm) {
+    showError('register', '请填写完整信息');
+    return;
+  }
+
+  if (username.length < 3 || username.length > 20) {
+    showError('register', '用户名长度必须在 3-20 个字符之间');
+    return;
+  }
+
+  if (password.length < 6) {
+    showError('register', '密码长度至少 6 个字符');
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    showError('register', '两次输入的密码不一致');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span>注册中...';
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      window.location.href = '/';
+    } else {
+      showError('register', data.error || '注册失败');
+      btn.disabled = false;
+      btn.textContent = '注册';
+    }
+  } catch (error) {
+    showError('register', '网络错误，请重试');
+    btn.disabled = false;
+    btn.textContent = '注册';
+  }
+});
+</script>
+
+</body>
+</html>

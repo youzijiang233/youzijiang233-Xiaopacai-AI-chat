@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Xiaopacai AI Chat</title>
 <script src="lib/marked.min.js"></script>
 <script src="lib/highlight.min.js"></script>
@@ -16,6 +16,7 @@
   --accent:#5b8dee; --accent2:#4070d4; --accent-glow:rgba(91,141,238,0.15);
   --green:#4ecb8c; --red:#e05c6c; --yellow:#f5c542;
   --rail:52px; --panel:292px;
+  --app-height:100vh;
 }
 :root[data-theme="light"] {
   --bg:#f5f7fa; --bg2:#ffffff; --bg3:#e8ecf1; --bg4:#dfe3e8;
@@ -44,7 +45,8 @@
 :root[data-theme="light"] .rail{box-shadow:1px 0 0 rgba(0,0,0,0.06)}
 :root[data-theme="light"] .panel{box-shadow:-1px 0 0 rgba(0,0,0,0.06)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+html,body{height:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:var(--app-height);overflow:hidden;display:flex;flex-direction:column}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 0;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
@@ -290,7 +292,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .error-bubble{display:flex;align-items:flex-start;gap:8px;background:rgba(224,92,108,.07);border:1px solid rgba(224,92,108,.22);border-radius:8px;padding:9px 13px;color:var(--red);font-size:13px;line-height:1.5}
 
 /* INPUT BAR */
-.input-bar-outer{background:var(--bg);border-top:1px solid var(--border);flex-shrink:0}
+.input-bar-outer{background:var(--bg);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
 .input-bar{padding:12px 24px 15px;max-width:1080px;margin:0 auto;width:100%}
 .input-wrap{display:flex;gap:9px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:9px 15px;transition:border-color .15s,box-shadow .15s}
 .input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
@@ -367,12 +369,114 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
 .branch-btn:hover:not(:disabled){color:var(--text)}
 .branch-btn:disabled{opacity:0.3;cursor:not-allowed}
 .branch-indicator{color:var(--text3);font-family:'DM Sans',sans-serif;font-size:13px;min-width:40px;text-align:center;-webkit-user-select:none;user-select:none;padding:0 4px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;margin:0 -14px}
+
+/* 移动端适配：防止输入框被浏览器工具栏遮挡 */
+@media (max-width: 768px) {
+  .input-bar-outer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .input-bar {
+    padding: 10px 16px 12px;
+  }
+
+  /* 隐藏左侧边栏 */
+  .rail {
+    display: none;
+  }
+
+  /* 调整 topbar 左侧内边距（移除 rail 宽度） */
+  .topbar-left {
+    padding-left: 14px;
+  }
+
+  /* 在 topbar 中显示边栏按钮 */
+  .rail-btn-mobile {
+    display: flex !important;
+  }
+
+  /* 调整 logo 字体大小 */
+  .logo {
+    font-size: 14px;
+  }
+
+  /* 隐藏模型徽章（空间不够） */
+  .model-badge {
+    display: none;
+  }
+
+  /* 消息布局优化：头像和气泡垂直排列，名称在头像侧面 */
+  .message-row {
+    padding: 7px 16px;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  .message-row.user-row {
+    padding: 7px 16px;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-direction: column;
+    align-items: flex-end;
+    position: relative;
+  }
+
+  /* 头像调整 */
+  .message-row > .avatar {
+    margin-top: 0;
+  }
+
+  /* 名称定位在头像侧面，距离头像底部4px */
+  .message-row .bubble-name {
+    position: absolute;
+    top: calc(7px + 29px - 11px - 4px);
+    left: calc(16px + 29px + 8px);
+    margin: 0;
+  }
+
+  .message-row.user-row .bubble-name {
+    left: auto;
+    right: calc(16px + 29px + 8px);
+  }
+
+  /* AI 消息气泡左对齐 */
+  .message-row .bubble-content.ai-msg {
+    max-width: calc(100% - 32px);
+  }
+
+  /* 用户消息气泡右对齐 */
+  .message-row.user-row .bubble-content.user-msg {
+    max-width: calc(100% - 32px);
+  }
+}
+
+/* 移动端竖屏：隐藏底部快捷键提示，仅保留输入框区域 */
+body.mobile-portrait .input-footer {
+  display: none;
+}
+body.mobile-portrait .input-bar {
+  padding-bottom: 10px;
+}
+
+/* 桌面端隐藏移动端按钮 */
+.rail-btn-mobile {
+  display: none;
+}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-left">
+    <!-- 移动端边栏按钮 -->
+    <button class="rail-btn rail-btn-mobile" id="rail-settings-mobile" onclick="switchPanel('settings')" title="参数配置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="rail-btn rail-btn-mobile" id="rail-history-mobile" onclick="switchPanel('history')" title="对话列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
     <div class="logo"><div class="logo-dot"></div>Xiaopacai AI Chat</div>
     <div class="model-badge" id="model-badge">deepseek/deepseek-chat-v3.1</div>
   </div>
@@ -725,7 +829,7 @@ let isGenerating = false;
 let streamEnabled = true;
 let mdEnabled = true;
 let hlEnabled = true;
-let enterToSend = true; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
+let enterToSend = false; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
 let messageFontSize = 14; // 消息字体大小（px）
 let messageWidth = 1080; // 消息区域宽度（px）
 let activePanel = 'settings';
@@ -1332,24 +1436,47 @@ async function deletePreset(e, id) {
 
 // ══ MARKED ══
 marked.setOptions({ breaks: true, gfm: true });
+
+// Markdown 渲染缓存
+const mdRenderCache = new Map();
+const MAX_CACHE_SIZE = 200;
+
 const mdRenderer = new marked.Renderer();
 mdRenderer.code = function(code, lang) {
   const language = lang || 'plaintext';
-  let hl = escapeHtml(code);
+  const escapedCode = escapeHtml(code);
+
+  // 延迟代码高亮，先返回未高亮的代码
   if (hlEnabled) {
-    try {
-      hl = hljs.getLanguage(language)
-        ? hljs.highlight(code, { language }).value
-        : hljs.highlightAuto(code).value;
-    } catch(e) {}
+    // 使用 data-language 标记需要高亮的代码块
+    return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs" data-language="${language}" data-needs-highlight="true">${escapedCode}</code></pre></div>`;
   }
-  return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs">${hl}</code></pre></div>`;
+
+  return `<div class="code-block-wrap"><div class="code-header"><span>${language}</span><span class="copy-btn" onclick="copyCode(this)">复制</span></div><pre><code class="hljs">${escapedCode}</code></pre></div>`;
 };
 marked.use({ renderer: mdRenderer });
 
 function renderMd(text) {
   if (!mdEnabled) return `<span class="plain-text">${escapeHtml(text)}</span>`;
-  return marked.parse(text);
+
+  // 检查缓存
+  if (mdRenderCache.has(text)) {
+    return mdRenderCache.get(text);
+  }
+
+  // 渲染 Markdown
+  const rendered = marked.parse(text);
+
+  // 存入缓存
+  mdRenderCache.set(text, rendered);
+
+  // 限制缓存大小（LRU 策略）
+  if (mdRenderCache.size > MAX_CACHE_SIZE) {
+    const firstKey = mdRenderCache.keys().next().value;
+    mdRenderCache.delete(firstKey);
+  }
+
+  return rendered;
 }
 function escapeHtml(t) {
   return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1406,34 +1533,32 @@ async function decryptText(encrypted) {
 const FILES = { S:'settings.json', A:'active.json' };
 const CONVERSATIONS_FOLDER = 'conversations';
 
+// 检查是否在 Electron 环境中（如果 storage-adapter.js 未加载）
 // 检查是否在 Electron 环境中
 const isElectron = typeof window.electronAPI !== 'undefined';
+// 检查是否使用服务器存储（非 Electron 环境）
+const useServerStorage = !isElectron;
 
-// 生成对话文件名：标题_ID.json
-function sanitizeConvTitleForFilename(title) {
-  // 兼容 Windows 文件名规则：去除非法字符、控制字符，清理末尾点/空格，规避保留设备名
-  let clean = String(title ?? '')
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[. ]+$/g, '');
-
-  if (!clean) clean = 'untitled';
-
-  // Windows 保留设备名，不能作为文件名主体
-  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(clean)) {
-    clean = '_' + clean;
+// 服务器 API 辅助函数
+async function serverFetch(url, options = {}) {
+  try {
+    const res = await fetch(url, options);
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Server API error:', error);
+    return { success: false, error: error.message };
   }
-
-  return clean.substring(0, 50);
 }
 
+// 生成对话文件名：标题_ID.json
 function getConvFileName(conv) {
-  const cleanTitle = sanitizeConvTitleForFilename(conv.title);
+  // 清理标题，移除不合法的文件名字符
+  const cleanTitle = conv.title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
   return `${CONVERSATIONS_FOLDER}/${cleanTitle}_${conv.id}.json`;
 }
 
-// 读取数据（优先使用文件存储，降级到 localStorage）
+// 读取数据（支持 Electron、服务器、localStorage）
 async function getData(key) {
   if (isElectron) {
     const filename = FILES[key];
@@ -1446,6 +1571,17 @@ async function getData(key) {
       }
     }
     return null;
+  } else if (useServerStorage) {
+    // 服务器模式：支持设置(S)和活动对话(A)
+    if (key === 'S') {
+      const data = await serverFetch('/api/settings');
+      return data.success ? data.data : null;
+    }
+    if (key === 'A') {
+      const data = await serverFetch('/api/active-conversation');
+      return data.success ? data.data : null;
+    }
+    return null;
   } else {
     // 降级到 localStorage（开发环境或浏览器中）
     try {
@@ -1456,12 +1592,27 @@ async function getData(key) {
   }
 }
 
-// 写入数据（优先使用文件存储，降级到 localStorage）
+// 写入数据（支持 Electron、服务器、localStorage）
 async function setData(key, value) {
   if (isElectron) {
     const filename = FILES[key];
     const data = JSON.stringify(value, null, 2);
     await window.electronAPI.writeData(filename, data);
+  } else if (useServerStorage) {
+    // 服务器模式：支持设置(S)和活动对话(A)
+    if (key === 'S') {
+      await serverFetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: value })
+      });
+    } else if (key === 'A') {
+      await serverFetch('/api/active-conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: value })
+      });
+    }
   } else {
     // 降级到 localStorage（开发环境或浏览器中）
     try {
@@ -1519,8 +1670,7 @@ function handleApiKeyInput(event) {
 async function onSystemPromptChange() {
   if (!currentConvId) return;  // 添加保护
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (conv) {
     conv.systemPrompt = g('system-prompt').value;
     await saveConv(conv, false);
@@ -1614,7 +1764,7 @@ async function loadSettings() {
   streamEnabled = s.stream !== false;
   mdEnabled     = s.md     !== false;
   hlEnabled     = s.hl     !== false;
-  enterToSend   = s.enterToSend !== false;
+  enterToSend   = s.enterToSend === true;
   messageFontSize = s.messageFontSize ?? 14;
   messageWidth = s.messageWidth ?? 1080;
   g('stream-toggle').classList.toggle('on', streamEnabled);
@@ -1726,9 +1876,51 @@ let convsCache = null;
 let convsCacheTime = 0;
 const CACHE_TTL = 5000; // 5秒缓存
 
+// 完整对话内容缓存（用于服务器模式）
+const fullConvCache = new Map(); // key: convId, value: {conv, timestamp}
+const FULL_CONV_CACHE_TTL = 60000; // 60秒缓存
+const FULL_CONV_CACHE_MAX = 100; // 最大缓存条目数
+
+function toConvMeta(conv) {
+  if (!conv) return null;
+
+  let messageCount = conv.messageCount;
+  if (messageCount === undefined && conv.messages) {
+    messageCount = Object.values(conv.messages).filter(m => m.role !== 'system').length;
+  }
+
+  return {
+    id: conv.id,
+    title: conv.title,
+    updatedAt: conv.updatedAt,
+    createdAt: conv.createdAt,
+    messageCount: messageCount ?? 0
+  };
+}
+
+function pruneFullConvCache() {
+  const now = Date.now();
+
+  for (const [id, cached] of fullConvCache) {
+    if (!cached || (now - (cached.timestamp || 0) > FULL_CONV_CACHE_TTL)) {
+      fullConvCache.delete(id);
+    }
+  }
+
+  if (fullConvCache.size > FULL_CONV_CACHE_MAX) {
+    const entries = [...fullConvCache.entries()]
+      .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+    const removeCount = fullConvCache.size - FULL_CONV_CACHE_MAX;
+    for (let i = 0; i < removeCount; i++) {
+      fullConvCache.delete(entries[i][0]);
+    }
+  }
+}
+
 // 获取所有对话列表（从conversations文件夹读取所有对话文件）
 async function getConvs(forceRefresh = false) {
   const now = Date.now();
+  pruneFullConvCache();
 
   // 使用缓存（如果未过期且不强制刷新）
   if (!forceRefresh && convsCache && (now - convsCacheTime < CACHE_TTL)) {
@@ -1766,6 +1958,16 @@ async function getConvs(forceRefresh = false) {
     convsCacheTime = now;
 
     return convs;
+  } else if (useServerStorage) {
+    // 服务器模式：从服务器获取对话列表（仅元数据）
+    const data = await serverFetch('/api/conversations/batch', { method: 'POST' });
+    const convs = data.success ? data.conversations : [];
+
+    // 更新缓存
+    convsCache = convs;
+    convsCacheTime = now;
+
+    return convs;
   } else {
     // localStorage降级
     const convs = await getData('C') || [];
@@ -1778,6 +1980,71 @@ async function getConvs(forceRefresh = false) {
   }
 }
 
+// 加载单个对话的完整内容（服务器模式专用）
+async function loadConvFromServer(id, expectedUpdatedAt = null, forceRefresh = false) {
+  try {
+    pruneFullConvCache();
+
+    // 检查缓存
+    const cached = fullConvCache.get(id);
+    if (!forceRefresh && cached && (Date.now() - cached.timestamp < FULL_CONV_CACHE_TTL)) {
+      if (expectedUpdatedAt == null || cached.updatedAt === expectedUpdatedAt) {
+        return cached.conv;
+      }
+    }
+
+    const data = await serverFetch(`/api/conversations/${id}`);
+    if (data.success) {
+      const conversation = data.conversation;
+
+      // 缓存完整对话
+      fullConvCache.set(id, {
+        conv: conversation,
+        updatedAt: conversation.updatedAt,
+        timestamp: Date.now()
+      });
+      pruneFullConvCache();
+      return conversation;
+    }
+    return null;
+  } catch (e) {
+    console.error('加载对话失败:', e);
+    return null;
+  }
+}
+
+// 获取当前对话（统一处理服务器模式和本地模式）
+async function getCurrentConv() {
+  if (!currentConvId) return null;
+
+  const convs = await getConvs();
+  let conv = convs.find(c => c.id === currentConvId);
+
+  // 服务器模式：convsCache 只保留元数据，完整内容从 fullConvCache 或接口获取
+  if (conv && useServerStorage && !isElectron) {
+    const expectedUpdatedAt = conv.updatedAt;
+    const cached = fullConvCache.get(currentConvId);
+    if (cached && (Date.now() - cached.timestamp < FULL_CONV_CACHE_TTL) &&
+        (expectedUpdatedAt == null || cached.updatedAt === expectedUpdatedAt)) {
+      return cached.conv;
+    }
+
+    conv = await loadConvFromServer(currentConvId, expectedUpdatedAt);
+
+    // 更新列表缓存（保持元数据形态）
+    if (conv && convsCache) {
+      const index = convsCache.findIndex(c => c.id === currentConvId);
+      if (index !== -1) {
+        convsCache[index] = toConvMeta(conv);
+      }
+    }
+
+    return conv;
+  }
+
+  return conv;
+}
+
 // 保存单个对话到独立文件
 async function saveConv(conv, updateTime = true) {
   // 更新时间戳（可选）
@@ -1785,8 +2052,9 @@ async function saveConv(conv, updateTime = true) {
     conv.updatedAt = Date.now();
   }
 
-  // 清除缓存，因为数据已修改
-  convsCache = null;
+  // 更新完整对话缓存
+  fullConvCache.set(conv.id, { conv, updatedAt: conv.updatedAt, timestamp: Date.now() });
+  pruneFullConvCache();
 
   // 自动生成标题（仅在第一次且标题为"新对话"时）
   const oldTitle = conv.title;
@@ -1806,7 +2074,7 @@ async function saveConv(conv, updateTime = true) {
 
     // 如果标题改变了，删除旧文件
     if (oldTitle !== conv.title) {
-      const oldFilename = `${CONVERSATIONS_FOLDER}/${sanitizeConvTitleForFilename(oldTitle)}_${conv.id}.json`;
+      const oldFilename = `${CONVERSATIONS_FOLDER}/${oldTitle.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50)}_${conv.id}.json`;
       try {
         await window.electronAPI.deleteFile(oldFilename);
       } catch (e) {
@@ -1817,6 +2085,13 @@ async function saveConv(conv, updateTime = true) {
     const filename = getConvFileName(conv);
     const data = JSON.stringify(conv, null, 2);
     await window.electronAPI.writeData(filename, data);
+  } else if (useServerStorage) {
+    // 服务器模式：保存到服务器
+    await serverFetch('/api/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversation: conv })
+    });
   } else {
     // localStorage降级：保存所有对话
     const convs = await getData('C') || [];
@@ -1829,9 +2104,22 @@ async function saveConv(conv, updateTime = true) {
     await setData('C', convs);
   }
 
+  // 增量更新对话列表缓存，避免频繁全量刷新
+  if (convsCache) {
+    const cacheItem = (useServerStorage && !isElectron) ? toConvMeta(conv) : conv;
+    const idx = convsCache.findIndex(c => c.id === conv.id);
+    if (idx >= 0) {
+      convsCache[idx] = cacheItem;
+    } else {
+      convsCache.unshift(cacheItem);
+    }
+    convsCache.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    convsCacheTime = Date.now();
+  }
+
   // 如果更新了时间戳，重新渲染对话列表以更新顺序
   if (updateTime) {
-    renderConvList(await getConvs(true)); // 强制刷新缓存
+    renderConvList(convsCache || await getConvs());
   }
 }
 
@@ -1839,10 +2127,16 @@ async function saveConv(conv, updateTime = true) {
 async function deleteConvFile(conv) {
   // 清除缓存，因为数据已修改
   convsCache = null;
+  fullConvCache.delete(conv.id); // 清除完整对话缓存
 
   if (isElectron) {
     const filename = getConvFileName(conv);
     await window.electronAPI.deleteFile(filename);
+  } else if (useServerStorage) {
+    // 服务器模式：从服务器删除
+    await serverFetch(`/api/conversations/${conv.id}`, {
+      method: 'DELETE'
+    });
   } else {
     // localStorage降级
     const convs = await getData('C') || [];
@@ -1868,8 +2162,7 @@ async function setConvs(convs) {
  */
 async function saveCurrentConv() {
   if (!currentConvId) return;
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (!conv) return;
 
   // 保存当前滚动位置
@@ -1878,13 +2171,8 @@ async function saveCurrentConv() {
     conv.scrollPosition = messagesContainer.scrollTop;
   }
 
-  // 深拷贝整个对话对象
-  conv.messages = JSON.parse(JSON.stringify(conv.messages || {}));
-  conv.branchNodes = JSON.parse(JSON.stringify(conv.branchNodes || {}));
-
   // 保存单个对话文件（不更新时间戳）
   await saveConv(conv, false);
-  renderConvList(await getConvs(true)); // 强制刷新缓存
 }
 
 /**
@@ -1928,7 +2216,7 @@ async function newChat(saveCurrent = true) {
   await setData('A', id);
 
   renderMessages();
-  renderConvList(await getConvs(true)); // 强制刷新缓存
+  renderConvList();
   updateStats();
 }
 
@@ -1941,9 +2229,32 @@ async function loadConv(id) {
     await saveCurrentConv();
   }
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === id);
-  if (!conv) return;
+  let conv;
+
+  if (useServerStorage && !isElectron) {
+    const convs = await getConvs();
+    const convMeta = convs.find(c => c.id === id);
+    const expectedUpdatedAt = convMeta ? convMeta.updatedAt : null;
+
+    // 服务器模式：从服务器加载完整对话内容
+    conv = await loadConvFromServer(id, expectedUpdatedAt);
+    if (!conv) return;
+
+    // 更新缓存中的对话元数据
+    if (convsCache) {
+      const index = convsCache.findIndex(c => c.id === id);
+      if (index !== -1) {
+        convsCache[index] = toConvMeta(conv);
+      } else {
+        convsCache.push(toConvMeta(conv));
+      }
+    }
+  } else {
+    // Electron 或 localStorage 模式：从列表中获取
+    const convs = await getConvs();
+    conv = convs.find(c => c.id === id);
+    if (!conv) return;
+  }
 
   currentConvId = id;
   await setData('A', id);
@@ -2029,14 +2340,15 @@ function startRenameConv(e, id) {
       renderConvList(await getConvs(true)); // 强制刷新缓存
     };
 
-    input.addEventListener('keydown', ev => {
+    input.addEventListener('keydown', async ev => {
       if (ev.key === 'Enter') {
         ev.preventDefault();
         finish();
       }
       if (ev.key === 'Escape') {
         saved = true;
-        renderConvList(getConvs(true).then(convs => convs)); // 强制刷新缓存
+        const latestConvs = await getConvs(true);
+        renderConvList(latestConvs); // 强制刷新缓存
       }
     });
     input.addEventListener('blur', finish);
@@ -2047,8 +2359,14 @@ function startRenameConv(e, id) {
 async function duplicateConv(id, e) {
   e && e.stopPropagation();
   const convs = await getConvs();
-  const conv = convs.find(c => c.id === id);
+  let conv = convs.find(c => c.id === id);
   if (!conv) return;
+
+  // 如果是服务器模式且对话没有 messages（只有元数据），则加载完整内容
+  if (useServerStorage && !isElectron && !conv.messages) {
+    conv = await loadConvFromServer(id, conv.updatedAt);
+    if (!conv) return;
+  }
 
   // 深拷贝对话对象
   const newConv = JSON.parse(JSON.stringify(conv));
@@ -2097,9 +2415,10 @@ async function duplicateConv(id, e) {
   const newBranchNodes = {};
   const branchNodeIdMap = {};
 
-  for (const nodeId in newConv.branchNodes) {
-    const oldNode = newConv.branchNodes[nodeId];
-    // 提取时间戳部分
+  if (newConv.branchNodes) {
+    for (const nodeId in newConv.branchNodes) {
+      const oldNode = newConv.branchNodes[nodeId];
+      // 提取时间戳部分
     const timestamp = nodeId.substring(0, 13);
     const random = Math.random().toString(36).substring(2, 5);
     const newNodeId = timestamp + random;
@@ -2117,6 +2436,7 @@ async function duplicateConv(id, e) {
         firstMessageId: idMap[branch.firstMessageId] || branch.firstMessageId
       }))
     };
+  }
   }
 
   newConv.messages = newMessages;
@@ -2150,9 +2470,11 @@ async function renderConvList(convs = null) {
     const d = new Date(c.updatedAt);
     const meta = d.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'}) + ' ' + d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
 
-    // 计算消息数量（排除system消息）
+    // 获取消息数量：优先使用服务器返回的 messageCount，否则从 messages 计算
     let msgCount = 0;
-    if (c.messages) {
+    if (c.messageCount !== undefined) {
+      msgCount = c.messageCount;
+    } else if (c.messages) {
       for (const msgId in c.messages) {
         if (c.messages[msgId].role !== 'system') {
           msgCount++;
@@ -2193,8 +2515,7 @@ async function renderMessages() {
     return;
   }
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
 
   if (!conv || !conv.messages) {
     container.innerHTML = `<div class="empty-state" id="empty-state"><div class="empty-icon">✦</div><div class="empty-title">开始对话</div><div class="empty-sub">在下方输入你的问题</div></div>`;
@@ -2215,12 +2536,56 @@ async function renderMessages() {
     return;
   }
 
+  // 使用 DocumentFragment 批量插入 DOM，提升性能
+  const fragment = document.createDocumentFragment();
   container.innerHTML = '';
 
-  // 渲染每条消息
+  // 渲染每条消息到 fragment
   visibleMessages.forEach(msg => {
-    appendBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id), msg.model);
+    const bubble = createBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id), msg.model);
+    fragment.appendChild(bubble);
   });
+
+  // 一次性插入所有消息
+  container.appendChild(fragment);
+
+  // 延迟高亮代码块（使用 requestIdleCallback 或 setTimeout）
+  highlightCodeBlocks();
+}
+
+// 延迟高亮代码块
+function highlightCodeBlocks() {
+  const highlightFn = () => {
+    const codeBlocks = document.querySelectorAll('code[data-needs-highlight="true"]');
+
+    codeBlocks.forEach(block => {
+      const language = block.getAttribute('data-language');
+      const code = block.textContent;
+
+      try {
+        let highlighted;
+        if (hljs.getLanguage(language)) {
+          highlighted = hljs.highlight(code, { language }).value;
+        } else {
+          highlighted = hljs.highlightAuto(code).value;
+        }
+
+        block.innerHTML = highlighted;
+        block.removeAttribute('data-needs-highlight');
+        block.setAttribute('data-highlighted', 'true');
+      } catch(e) {
+        console.warn('代码高亮失败:', e);
+        block.removeAttribute('data-needs-highlight');
+      }
+    });
+  };
+
+  // 使用 requestIdleCallback 在浏览器空闲时高亮，降级到 setTimeout
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(highlightFn, { timeout: 1000 });
+  } else {
+    setTimeout(highlightFn, 50);
+  }
 }
 
 // ══ SEND / STOP ══
@@ -2252,8 +2617,7 @@ async function sendMessage(retryText = null, isRetry = false) {
   if (es) es.remove();
 
   // 获取当前对话
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (!conv) return;
 
   // 创建用户消息
@@ -2355,7 +2719,7 @@ async function sendMessage(retryText = null, isRetry = false) {
     while (currentId && currentId !== aiMessageId) {
       // 检查是消息还是分支节点
       const msg = conv.messages[currentId];
-      const branchNode = conv.branchNodes[currentId];
+      const branchNode = conv.branchNodes && conv.branchNodes[currentId];
 
       if (msg) {
         // 是消息
@@ -2548,12 +2912,25 @@ async function sendMessage(retryText = null, isRetry = false) {
     }
 
     aiMessage.content = fullText;
-    const updatedConvs = await getConvs();
-    const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-    if (updatedConv && updatedConv.messages[aiMessageId]) {
-      updatedConv.messages[aiMessageId].content = fullText;
-      await saveConv(updatedConv);
+
+    // 在保存前重新加载完整对话，确保数据一致性
+    let convToSave = conv;
+    if (useServerStorage && !isElectron) {
+      // 服务器模式：重新加载完整对话
+      const freshConv = await loadConvFromServer(currentConvId, null, true);
+      if (freshConv && freshConv.messages) {
+        // 确保 AI 消息存在，如果不存在则添加
+        if (!freshConv.messages[aiMessageId]) {
+          freshConv.messages[aiMessageId] = aiMessage;
+        } else {
+          // 更新 AI 消息内容
+          freshConv.messages[aiMessageId].content = fullText;
+        }
+        convToSave = freshConv;
+      }
     }
+
+    await saveConv(convToSave);
 
     setStatus('green', '就绪');
 
@@ -2562,12 +2939,21 @@ async function sendMessage(retryText = null, isRetry = false) {
       if (fullText) {
         contentEl.innerHTML = renderMd(fullText) + '<span class="stop-marker">[ 已停止 ]</span>';
         aiMessage.content = fullText;
-        const updatedConvs = await getConvs();
-        const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-        if (updatedConv && updatedConv.messages[aiMessageId]) {
-          updatedConv.messages[aiMessageId].content = fullText;
-          await saveConv(updatedConv);
+        // 在保存前重新加载完整对话，确保数据一致性
+        let convToSave = conv;
+        if (useServerStorage && !isElectron) {
+          const freshConv = await loadConvFromServer(currentConvId, null, true);
+          if (freshConv && freshConv.messages) {
+            // 确保 AI 消息存在
+            if (!freshConv.messages[aiMessageId]) {
+              freshConv.messages[aiMessageId] = aiMessage;
+            } else {
+              freshConv.messages[aiMessageId].content = fullText;
+            }
+            convToSave = freshConv;
+          }
         }
+        await saveConv(convToSave);
       } else {
         aiRow.remove();
       }
@@ -2592,8 +2978,7 @@ async function sendMessage(retryText = null, isRetry = false) {
 async function sendMessageToTree(userText, aiMessageId) {
   if (isGenerating) return;
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (!conv || !conv.messages[aiMessageId]) return;
 
   const aiMessage = conv.messages[aiMessageId];
@@ -2824,12 +3209,24 @@ async function sendMessageToTree(userText, aiMessageId) {
     contentEl.innerHTML = renderMd(fullText);
     aiMessage.content = fullText;
 
-    const updatedConvs = await getConvs();
-    const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-    if (updatedConv && updatedConv.messages[aiMessageId]) {
-      updatedConv.messages[aiMessageId].content = fullText;
-      await saveConv(updatedConv);
+    // 在保存前重新加载完整对话，确保数据一致性
+    let convToSave = conv;
+    if (useServerStorage && !isElectron) {
+      // 服务器模式：重新加载完整对话
+      const freshConv = await loadConvFromServer(currentConvId, null, true);
+      if (freshConv && freshConv.messages) {
+        // 确保 AI 消息存在，如果不存在则添加
+        if (!freshConv.messages[aiMessageId]) {
+          freshConv.messages[aiMessageId] = aiMessage;
+        } else {
+          // 更新 AI 消息内容
+          freshConv.messages[aiMessageId].content = fullText;
+        }
+        convToSave = freshConv;
+      }
     }
+
+    await saveConv(convToSave);
 
     setStatus('green', '就绪');
 
@@ -2838,12 +3235,21 @@ async function sendMessageToTree(userText, aiMessageId) {
       if (fullText) {
         contentEl.innerHTML = renderMd(fullText) + '<span class="stop-marker">[ 已停止 ]</span>';
         aiMessage.content = fullText;
-        const updatedConvs = await getConvs();
-        const updatedConv = updatedConvs.find(c => c.id === currentConvId);
-        if (updatedConv && updatedConv.messages[aiMessageId]) {
-          updatedConv.messages[aiMessageId].content = fullText;
-          await saveConv(updatedConv);
+        // 在保存前重新加载完整对话，确保数据一致性
+        let convToSave = conv;
+        if (useServerStorage && !isElectron) {
+          const freshConv = await loadConvFromServer(currentConvId, null, true);
+          if (freshConv && freshConv.messages) {
+            // 确保 AI 消息存在
+            if (!freshConv.messages[aiMessageId]) {
+              freshConv.messages[aiMessageId] = aiMessage;
+            } else {
+              freshConv.messages[aiMessageId].content = fullText;
+            }
+            convToSave = freshConv;
+          }
         }
+        await saveConv(convToSave);
       } else {
         aiRow.remove();
       }
@@ -2871,7 +3277,13 @@ function g(id){ return document.getElementById(id); }
  * @param {string} messageId - 消息ID
  * @param {object} branchNode - 分支节点（如果该消息是分支的第一条消息）
  */
-function appendBubble(role, text, empty=false, messageId=null, branchNode=null, messageModel=null) {
+function appendBubble(role, text, empty=false, messageId=null, branchNode=null) {
+  const bubble = createBubble(role, text, empty, messageId, branchNode, null);
+  g('messages').appendChild(bubble);
+  return bubble;
+}
+
+function createBubble(role, text, empty=false, messageId=null, branchNode=null, messageModel=null) {
   const isUser = role==='user';
   const row = document.createElement('div');
   row.className = 'message-row' + (isUser ? ' user-row' : '');
@@ -2923,7 +3335,6 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null, 
       ${actions}
     </div>`;
   row.style.maxWidth = messageWidth + 'px';
-  g('messages').appendChild(row);
   return row;
 }
 
@@ -2966,8 +3377,7 @@ async function deleteMessage(btn) {
   const messageId = row.dataset.messageId;
   if (!messageId) return;
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (!conv || !conv.messages[messageId]) return;
 
   const message = conv.messages[messageId];
@@ -2976,7 +3386,7 @@ async function deleteMessage(btn) {
 
   // 修改：检查parentId是消息还是分支节点
   const parentMessage = conv.messages[parentId];
-  const parentBranchNode = conv.branchNodes[parentId];
+  const parentBranchNode = conv.branchNodes && conv.branchNodes[parentId];
 
   // 判断删除策略
   if (children.length > 0 && parentBranchNode) {
@@ -2990,7 +3400,7 @@ async function deleteMessage(btn) {
 
     // 将子节点的parentId改为父消息ID
     const childMessage = conv.messages[childId];
-    const childBranchNode = conv.branchNodes[childId];
+    const childBranchNode = conv.branchNodes && conv.branchNodes[childId];
     if (childMessage) {
       childMessage.parentId = parentId;
     } else if (childBranchNode) {
@@ -3083,8 +3493,7 @@ async function retryMessage(btn) {
   const messageId = row.dataset.messageId;
   if (!messageId) return;
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (!conv || !conv.messages[messageId]) return;
 
   const message = conv.messages[messageId];
@@ -3099,7 +3508,7 @@ async function retryMessage(btn) {
     const firstChild = message.children.length > 0 ? message.children[0] : null;
 
     if (firstChild) {
-      if (conv.branchNodes[firstChild]) {
+      if (conv.branchNodes && conv.branchNodes[firstChild]) {
         // 子节点已经是分支节点，直接使用
         branchNode = conv.branchNodes[firstChild];
       } else if (conv.messages[firstChild]) {
@@ -3178,7 +3587,7 @@ async function retryMessage(btn) {
 
     // 检查父节点是消息还是分支节点
     const parentMessage = conv.messages[parentId];
-    const parentBranchNode = conv.branchNodes[parentId];
+    const parentBranchNode = conv.branchNodes && conv.branchNodes[parentId];
 
     if (!parentMessage && !parentBranchNode) return;
 
@@ -3390,8 +3799,7 @@ function editMessage(btn) {
     const messageId = row.dataset.messageId;
     if (!messageId) return;
 
-    const convs = await getConvs();
-    const conv = convs.find(c => c.id === currentConvId);
+    const conv = await getCurrentConv();
     if (!conv || !conv.messages[messageId]) return;
 
     conv.messages[messageId].content = newText;
@@ -3413,8 +3821,7 @@ function editMessage(btn) {
       const messageId = row.dataset.messageId;
       if (!messageId) return;
 
-      const convs = await getConvs();
-      const conv = convs.find(c => c.id === currentConvId);
+      const conv = await getCurrentConv();
       if (!conv || !conv.messages[messageId]) return;
 
       const message = conv.messages[messageId];
@@ -3422,7 +3829,7 @@ function editMessage(btn) {
 
       // 检查父节点是消息还是分支节点
       const parentMessage = conv.messages[parentId];
-      const parentBranchNode = conv.branchNodes[parentId];
+      const parentBranchNode = conv.branchNodes && conv.branchNodes[parentId];
 
       if (!parentMessage && !parentBranchNode) return;
 
@@ -3522,9 +3929,8 @@ function editMessage(btn) {
  * 切换分支
  */
 async function switchBranch(nodeId, direction) {
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
-  if (!conv || !conv.branchNodes[nodeId]) return;
+  const conv = await getCurrentConv();
+  if (!conv || !conv.branchNodes || !conv.branchNodes[nodeId]) return;
 
   const branchNode = conv.branchNodes[nodeId];
   const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
@@ -3557,9 +3963,8 @@ async function switchBranch(nodeId, direction) {
 async function deleteBranch(nodeId) {
   if (isGenerating) return;
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
-  if (!conv || !conv.branchNodes[nodeId]) return;
+  const conv = await getCurrentConv();
+  if (!conv || !conv.branchNodes || !conv.branchNodes[nodeId]) return;
 
   const branchNode = conv.branchNodes[nodeId];
   const currentIndex = branchNode.branches.findIndex(b => b.firstMessageId === branchNode.activeChildId);
@@ -3570,7 +3975,7 @@ async function deleteBranch(nodeId) {
   const branchToDelete = branchNode.branches[currentIndex];
   const deleteMessagesRecursive = (msgId) => {
     const msg = conv.messages[msgId];
-    const branchNodeChild = conv.branchNodes[msgId];
+    const branchNodeChild = conv.branchNodes && conv.branchNodes[msgId];
 
     if (msg) {
       // 是消息，递归删除子节点
@@ -3659,8 +4064,7 @@ async function updateStats() {
     return;
   }
 
-  const convs = await getConvs();
-  const conv = convs.find(c => c.id === currentConvId);
+  const conv = await getCurrentConv();
   if (!conv) return;
 
   const { messages } = buildRenderPath(conv);
@@ -3678,14 +4082,20 @@ function updateInputHints(){
   const input = g('user-input');
   const sendBtn = g('send-btn');
   const keyHint = g('key-hint');
+  if (document.body && document.body.classList.contains('mobile-portrait')) {
+    input.placeholder = '输入消息…';
+    sendBtn.title = '发送';
+    if (keyHint) keyHint.textContent = '';
+    return;
+  }
   if(enterToSend){
     input.placeholder = '输入消息，Enter 发送…';
     sendBtn.title = '发送 (Enter)';
-    keyHint.innerHTML = '<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 换行';
+    if (keyHint) keyHint.innerHTML = '<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 换行';
   } else {
     input.placeholder = '输入消息，Ctrl+Enter 发送…';
     sendBtn.title = '发送 (Ctrl+Enter)';
-    keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
+    if (keyHint) keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
   }
 }
 
@@ -3841,9 +4251,12 @@ function switchPanel(name) {
   const panel=g('sidebar-panel');
   const sp=g('panel-settings'), hp=g('panel-history');
   const rs=g('rail-settings'), rh=g('rail-history');
+  const rsm=g('rail-settings-mobile'), rhm=g('rail-history-mobile');
   if(name===activePanel||!name) {
     activePanel=null; panel.classList.add('hidden');
     rs.classList.remove('active'); rh.classList.remove('active');
+    if(rsm) rsm.classList.remove('active');
+    if(rhm) rhm.classList.remove('active');
     saveSettings();
     return;
   }
@@ -3852,6 +4265,8 @@ function switchPanel(name) {
   hp.style.display  = name==='history' ?'flex':'none';
   rs.classList.toggle('active',name==='settings');
   rh.classList.toggle('active',name==='history');
+  if(rsm) rsm.classList.toggle('active',name==='settings');
+  if(rhm) rhm.classList.toggle('active',name==='history');
   saveSettings();
 }
 
@@ -3860,9 +4275,12 @@ function restorePanel(name) {
   const panel=g('sidebar-panel');
   const sp=g('panel-settings'), hp=g('panel-history');
   const rs=g('rail-settings'), rh=g('rail-history');
+  const rsm=g('rail-settings-mobile'), rhm=g('rail-history-mobile');
   if (!name) {
     activePanel=null; panel.classList.add('hidden');
     rs.classList.remove('active'); rh.classList.remove('active');
+    if(rsm) rsm.classList.remove('active');
+    if(rhm) rhm.classList.remove('active');
     return;
   }
   activePanel=name; panel.classList.remove('hidden');
@@ -3870,6 +4288,8 @@ function restorePanel(name) {
   hp.style.display  = name==='history' ?'flex':'none';
   rs.classList.toggle('active',name==='settings');
   rh.classList.toggle('active',name==='history');
+  if(rsm) rsm.classList.toggle('active',name==='settings');
+  if(rhm) rhm.classList.toggle('active',name==='history');
 }
 
 function toggleCollapse(key) {
@@ -3926,29 +4346,68 @@ async function toggleOpt(key) {
   saveSettings();
 }
 
+// ══ MOBILE VIEWPORT FIX ══
+// 在移动端浏览器（如 Edge）中，100vh 可能包含工具栏，导致底部输入栏被遮挡。
+// 使用 visualViewport 动态同步可视高度，确保输入栏始终在可见区域内。
+function isMobilePortraitDevice() {
+  if (isElectron) return false;
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  const isTouchLike = window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches;
+  const ua = navigator.userAgent || '';
+  const uaMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone|Mobi/i.test(ua);
+  return isPortrait && (isTouchLike || uaMobile);
+}
+
+function syncMobilePortraitUI() {
+  if (isElectron) return;
+  const shouldEnable = isMobilePortraitDevice();
+  const hadClass = document.body.classList.contains('mobile-portrait');
+  document.body.classList.toggle('mobile-portrait', shouldEnable);
+  if (hadClass !== shouldEnable) {
+    updateInputHints();
+  }
+}
+
+function syncViewportHeight() {
+  if (isElectron) return;
+  const vv = window.visualViewport;
+  const nextHeight = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', `${Math.round(nextHeight)}px`);
+  syncMobilePortraitUI();
+}
+
+function setupViewportSync() {
+  if (isElectron) return;
+  syncViewportHeight();
+  window.addEventListener('resize', syncViewportHeight, { passive: true });
+  window.addEventListener('orientationchange', syncViewportHeight, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncViewportHeight, { passive: true });
+    window.visualViewport.addEventListener('scroll', syncViewportHeight, { passive: true });
+  }
+}
+
 // ══ INIT ══
 (async function init(){
+  setupViewportSync();
+
+  // 服务器模式：检查登录状态
+  if (useServerStorage) {
+    const authData = await serverFetch('/api/auth/me');
+    if (!authData.success) {
+      window.location.href = '/login';
+      return;
+    }
+    console.log('已登录用户:', authData.user.username);
+  }
+
   await loadSettings();
   const convs = await getConvs();
   const savedId = await getData('A');
   if(convs.length>0){
-    const target = savedId ? convs.find(c=>c.id===savedId) : convs[0];
-    if(target){
-      currentConvId=target.id;
-      renderMessages(); renderConvList(); updateStats();
-      // 恢复滚动位置
-      if (target.scrollPosition !== undefined && target.scrollPosition !== null) {
-        setTimeout(() => {
-          const messagesContainer = g('messages');
-          if (messagesContainer) {
-            messagesContainer.scrollTop = target.scrollPosition;
-          }
-        }, 50);
-      } else {
-        scrollToBottom(true);  // 首次加载对话时强制滚动到底部
-      }
-    }
-    else await newChat(false);
+    const target = savedId ? (convs.find(c=>c.id===savedId) || convs[0]) : convs[0];
+    await loadConv(target.id);
   } else { await newChat(false); }
 
   // 页面关闭前保存滚动位置
@@ -3978,8 +4437,7 @@ async function toggleOpt(key) {
 
         // 500ms 后保存（用户停止滚动后才保存）
         scrollSaveTimeout = setTimeout(async () => {
-          const convs = await getConvs();
-          const conv = convs.find(c => c.id === currentConvId);
+          const conv = await getCurrentConv();
           if (conv) {
             conv.scrollPosition = messagesContainer.scrollTop;
             await saveConv(conv, false);
