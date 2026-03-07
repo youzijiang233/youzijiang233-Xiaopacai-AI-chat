@@ -2,6 +2,8 @@
 
 基于文件系统的多用户 AI 聊天应用服务器版本。
 
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
+
 ## 特性
 
 - 🔐 用户注册和登录系统
@@ -38,6 +40,9 @@ npm install
 
 ### 2. 配置环境变量（可选）
 
+`start.bat` / `start.sh` 首次运行时会自动创建 `.env`，并自动生成随机 `SESSION_SECRET`。  
+如果你希望手动管理配置，也可以按下面方式创建：
+
 复制 `.env.example` 为 `.env` 并修改：
 
 ```bash
@@ -47,7 +52,7 @@ cp .env.example .env
 编辑 `.env` 文件：
 ```
 SESSION_SECRET=your-secret-key-here
-PORT=3000
+PORT=5638
 NODE_ENV=development
 ```
 
@@ -70,13 +75,13 @@ npm start
 
 ### 4. 访问应用
 
-打开浏览器访问：http://localhost:3000
+打开浏览器访问：http://localhost:5638
 
 ## 用户管理
 
 ### 注册新用户
 
-1. 访问 http://localhost:3000/login
+1. 访问 http://localhost:5638/login
 2. 点击"注册"
 3. 输入用户名（3-20个字符，仅支持字母、数字、下划线、连字符）
 4. 输入密码（至少6个字符）
@@ -179,6 +184,14 @@ A: 可以，但建议：
 2. 设置强密码策略
 3. 定期备份数据
 4. 考虑添加访问限制
+
+## 版本信息
+
+### v1.4.0 (2026-03-08)
+- 🚀 Web 版本号升级到 1.4.0
+- 🔐 Windows 启动脚本首次初始化 `.env` 时自动生成随机 `SESSION_SECRET`
+- 📱 移动端输入栏可视区域适配增强，减少浏览器工具栏遮挡问题
+- ⚡ 对话加载与缓存逻辑优化（元数据/完整内容分层缓存）
 
 ## 许可证
 

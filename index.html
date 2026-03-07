@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -777,7 +777,7 @@ function buildRenderPath(conv) {
   while (currentId) {
     // 检查当前ID是消息还是分支节点
     const message = conv.messages[currentId];
-    const branchNode = conv.branchNodes[currentId];
+    const branchNode = conv.branchNodes && conv.branchNodes[currentId];
 
     if (message) {
       // 是消息
@@ -875,11 +875,31 @@ let activePresetId = null;
 let fullApiKeys = {}; // { presetId: plaintext key }
 
 function getDefaultPresets() {
-  return [{ id: 'preset_default', name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'deepseek/deepseek-chat-v3.1', format: 'openai', provider: '' }];
+  return [{ id: 'preset_default', name: '新预设', url: '', model: '', format: 'openai' }];
 }
 
 function getActivePreset() {
   return apiPresets.find(p => p.id === activePresetId) || apiPresets[0];
+}
+
+const FORMAT_NAMES = {
+  openai: 'OpenAI 兼容（默认）',
+  claude: 'Anthropic Claude'
+};
+
+function normalizeFormatValue(value) {
+  if (value === 'openai' || value === FORMAT_NAMES.openai) return 'openai';
+  if (value === 'claude' || value === FORMAT_NAMES.claude) return 'claude';
+  return 'openai';
+}
+
+function setApiFormatInput(value) {
+  const normalized = normalizeFormatValue(value);
+  const input = g('api-format');
+  if (!input) return normalized;
+  input.dataset.format = normalized;
+  input.value = FORMAT_NAMES[normalized];
+  return normalized;
 }
 
 function renderPresetDropdown() {
@@ -894,29 +914,52 @@ function renderPresetDropdown() {
     `<div class="preset-divider"></div><div class="preset-new-btn" onclick="addNewPreset()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建预设</div>`;
 }
 
+function closePresetDropdown() {
+  const dd = g('preset-dropdown');
+  const btn = g('preset-btn');
+  if (dd) dd.classList.add('hidden');
+  if (btn) btn.classList.remove('open');
+}
+
+function closeApiConfigDropdowns(except = '') {
+  const dropdownMap = {
+    model: ['model-dropdown', 'model-dropdown-btn'],
+    provider: ['provider-dropdown', 'provider-dropdown-btn'],
+    format: ['format-dropdown', 'format-dropdown-btn']
+  };
+
+  Object.entries(dropdownMap).forEach(([name, [dropdownId, btnId]]) => {
+    if (name === except) return;
+    const dropdown = g(dropdownId);
+    const btn = g(btnId);
+    if (dropdown) dropdown.classList.remove('show');
+    if (btn) btn.classList.remove('open');
+  });
+}
+
 function togglePresetDropdown() {
   const dd = g('preset-dropdown'), btn = g('preset-btn');
   const isOpen = !dd.classList.contains('hidden');
-  if (isOpen) { dd.classList.add('hidden'); btn.classList.remove('open'); }
-  else { renderPresetDropdown(); dd.classList.remove('hidden'); btn.classList.add('open'); }
+  if (isOpen) {
+    closePresetDropdown();
+  } else {
+    closeApiConfigDropdowns();
+    renderPresetDropdown();
+    dd.classList.remove('hidden');
+    btn.classList.add('open');
+  }
 }
 
 function selectPreset(id) {
   activePresetId = id;
   const p = getActivePreset();
+  p.format = setApiFormatInput(p.format);
   g('preset-btn-name').textContent = p.name;
   g('preset-dropdown').classList.add('hidden');
   g('preset-btn').classList.remove('open');
   g('api-url').value = p.url;
   g('model-name').value = p.model;
   g('model-badge').textContent = p.model;
-
-  // 显示格式名称
-  const formatNames = {
-    'openai': 'OpenAI 兼容（默认）',
-    'claude': 'Anthropic Claude'
-  };
-  g('api-format').value = formatNames[p.format] || formatNames['openai'];
 
   // 加载提供商字段
   g('provider-name').value = p.provider || '';
@@ -942,7 +985,7 @@ function onPresetFieldChange() {
   if (!p) return;
   p.url = g('api-url').value;
   p.model = g('model-name').value;
-  p.format = g('api-format').value;
+  p.format = setApiFormatInput(g('api-format')?.dataset?.format || p.format || g('api-format').value);
 
   // 检查是否为 OpenRouter，显示/隐藏提供商字段
   const isOpenRouter = p.url && p.url.includes('openrouter.ai');
@@ -976,6 +1019,8 @@ function toggleModelDropdown(e) {
     dropdown.classList.remove('show');
     btn.classList.remove('open');
   } else {
+    closePresetDropdown();
+    closeApiConfigDropdowns('model');
     // 加载当前 preset 的模型列表
     const preset = getActivePreset();
     if (preset && presetModels[preset.id]) {
@@ -1122,6 +1167,8 @@ function toggleProviderDropdown(e) {
     dropdown.classList.remove('show');
     btn.classList.remove('open');
   } else {
+    closePresetDropdown();
+    closeApiConfigDropdowns('provider');
     dropdown.classList.add('show');
     btn.classList.add('open');
   }
@@ -1148,23 +1195,20 @@ function toggleFormatDropdown(e) {
     dropdown.classList.remove('show');
     btn.classList.remove('open');
   } else {
+    closePresetDropdown();
+    closeApiConfigDropdowns('format');
     dropdown.classList.add('show');
     btn.classList.add('open');
   }
 }
 
 function selectFormat(formatValue) {
-  const input = g('api-format');
-  const formatNames = {
-    'openai': 'OpenAI 兼容（默认）',
-    'claude': 'Anthropic Claude'
-  };
-  input.value = formatNames[formatValue] || formatValue;
+  const normalizedFormat = setApiFormatInput(formatValue);
 
   // 更新 preset
   const p = getActivePreset();
   if (p) {
-    p.format = formatValue;
+    p.format = normalizedFormat;
     saveSettings();
   }
 
@@ -1175,21 +1219,10 @@ function selectFormat(formatValue) {
 
 // 点击外部关闭下拉菜单
 document.addEventListener('click', (e) => {
-  const modelDropdown = g('model-dropdown');
-  const providerDropdown = g('provider-dropdown');
-  const formatDropdown = g('format-dropdown');
-  const modelBtn = g('model-dropdown-btn');
-  const providerBtn = g('provider-dropdown-btn');
-  const formatBtn = g('format-dropdown-btn');
   const wrapper = e.target.closest('.model-input-wrapper');
 
   if (!wrapper) {
-    if (modelDropdown) modelDropdown.classList.remove('show');
-    if (providerDropdown) providerDropdown.classList.remove('show');
-    if (formatDropdown) formatDropdown.classList.remove('show');
-    if (modelBtn) modelBtn.classList.remove('open');
-    if (providerBtn) providerBtn.classList.remove('open');
-    if (formatBtn) formatBtn.classList.remove('open');
+    closeApiConfigDropdowns();
   }
 });
 
@@ -1270,6 +1303,8 @@ function startRenamePreset(e, id) {
   const input = document.createElement('input');
   input.className = 'preset-item-name-input';
   input.value = oldName;
+  input.addEventListener('pointerdown', ev => ev.stopPropagation());
+  input.addEventListener('click', ev => ev.stopPropagation());
   nameEl.replaceWith(input);
   input.focus(); input.select();
   let saved = false;
@@ -1375,9 +1410,26 @@ const CONVERSATIONS_FOLDER = 'conversations';
 const isElectron = typeof window.electronAPI !== 'undefined';
 
 // 生成对话文件名：标题_ID.json
+function sanitizeConvTitleForFilename(title) {
+  // 兼容 Windows 文件名规则：去除非法字符、控制字符，清理末尾点/空格，规避保留设备名
+  let clean = String(title ?? '')
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[. ]+$/g, '');
+
+  if (!clean) clean = 'untitled';
+
+  // Windows 保留设备名，不能作为文件名主体
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(clean)) {
+    clean = '_' + clean;
+  }
+
+  return clean.substring(0, 50);
+}
+
 function getConvFileName(conv) {
-  // 清理标题，移除不合法的文件名字符
-  const cleanTitle = conv.title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+  const cleanTitle = sanitizeConvTitleForFilename(conv.title);
   return `${CONVERSATIONS_FOLDER}/${cleanTitle}_${conv.id}.json`;
 }
 
@@ -1491,7 +1543,7 @@ async function saveSettings() {
     stream: streamEnabled, md: mdEnabled, hl: hlEnabled, enterToSend: enterToSend,
     messageFontSize: messageFontSize,
     messageWidth: messageWidth,
-    theme: document.documentElement.getAttribute('data-theme') || 'dark',
+    theme: document.documentElement.getAttribute('data-theme') || 'light',
     activePanel,
     collapseStates: getCollapseStates(),
     zoomLevel: zoomLevel,
@@ -1507,7 +1559,11 @@ async function loadSettings() {
     for (const p of s.presets) {
       fullApiKeys[p.id] = p.key ? await decryptText(p.key) : '';
     }
-    apiPresets = s.presets.map(p => { const {key, ...rest} = p; return rest; });
+    apiPresets = s.presets.map(p => {
+      const { key, ...rest } = p;
+      rest.format = normalizeFormatValue(rest.format);
+      return rest;
+    });
     activePresetId = s.activePresetId || apiPresets[0].id;
   } else {
     apiPresets = getDefaultPresets();
@@ -1521,13 +1577,7 @@ async function loadSettings() {
   g('api-url').value = p.url;
   g('model-name').value = p.model;
   g('model-badge').textContent = p.model;
-
-  // 显示格式名称
-  const formatNames = {
-    'openai': 'OpenAI 兼容（默认）',
-    'claude': 'Anthropic Claude'
-  };
-  g('api-format').value = formatNames[p.format || 'openai'];
+  p.format = setApiFormatInput(p.format);
 
   // 加载提供商字段
   g('provider-name').value = p.provider || '';
@@ -1545,7 +1595,12 @@ async function loadSettings() {
     g('api-key').value = plainKey.substring(0,8) + '*'.repeat(plainKey.length-12) + plainKey.substring(plainKey.length-4);
   } else { g('api-key').value = plainKey; }
 
-  if (!s) return;
+  if (!s) {
+    // 首次运行时也要同步默认发送模式的 UI，避免提示与真实行为不一致
+    g('enter-send-toggle').classList.toggle('on', enterToSend);
+    updateInputHints();
+    return;
+  }
   setv('s-max-tokens',  s.maxTokens   ?? 0);
   setv('s-chat-memory', s.chatMemory  ?? 10);
   setv('s-temp',        s.temp        ?? 1);
@@ -1589,7 +1644,7 @@ async function loadSettings() {
   }
 
   // 加载主题
-  const theme = s.theme || 'dark';
+  const theme = s.theme || 'light';
   document.documentElement.setAttribute('data-theme', theme);
 
   refreshDisplays();
@@ -1619,7 +1674,7 @@ function syncParam(el, valId, fmt) {
 
 // 主题切换
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', newTheme);
   saveSettings();
@@ -1751,7 +1806,7 @@ async function saveConv(conv, updateTime = true) {
 
     // 如果标题改变了，删除旧文件
     if (oldTitle !== conv.title) {
-      const oldFilename = `${CONVERSATIONS_FOLDER}/${oldTitle.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50)}_${conv.id}.json`;
+      const oldFilename = `${CONVERSATIONS_FOLDER}/${sanitizeConvTitleForFilename(oldTitle)}_${conv.id}.json`;
       try {
         await window.electronAPI.deleteFile(oldFilename);
       } catch (e) {
@@ -2164,7 +2219,7 @@ async function renderMessages() {
 
   // 渲染每条消息
   visibleMessages.forEach(msg => {
-    appendBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id));
+    appendBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id), msg.model);
   });
 }
 
@@ -2223,11 +2278,15 @@ async function sendMessage(retryText = null, isRetry = false) {
 
   conv.messages[userMessageId] = userMessage;
 
+  // 记录该 AI 消息生成时使用的模型（用于历史消息独立展示）
+  const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
+
   // 创建AI消息
   const aiMessageId = generateId16();
   const aiMessage = {
     id: aiMessageId,
     role: 'assistant',
+    model: aiModelName,
     content: '\n',  // 初始显示换行符
     parentId: userMessageId,
     children: [],
@@ -2812,7 +2871,7 @@ function g(id){ return document.getElementById(id); }
  * @param {string} messageId - 消息ID
  * @param {object} branchNode - 分支节点（如果该消息是分支的第一条消息）
  */
-function appendBubble(role, text, empty=false, messageId=null, branchNode=null) {
+function appendBubble(role, text, empty=false, messageId=null, branchNode=null, messageModel=null) {
   const isUser = role==='user';
   const row = document.createElement('div');
   row.className = 'message-row' + (isUser ? ' user-row' : '');
@@ -2854,10 +2913,12 @@ function appendBubble(role, text, empty=false, messageId=null, branchNode=null) 
       ${branchManager}
     </div>`;
 
-  const modelName = isUser ? '你' : (getActivePreset()?.model || 'AI');
+  const modelName = isUser
+    ? '你'
+    : (((messageModel || '').trim()) || getActivePreset()?.model || 'AI');
   row.innerHTML = `<div class="avatar ${role}">${isUser?'U':'AI'}</div>
     <div class="bubble">
-      <div class="bubble-name ${isUser?'user-name':'ai-name'}">${modelName}</div>
+      <div class="bubble-name ${isUser?'user-name':'ai-name'}">${escapeHtml(modelName)}</div>
       <div class="bubble-content ${isUser?'user-msg':'ai-msg'}" style="font-size:${messageFontSize}px">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
       ${actions}
     </div>`;
@@ -3077,11 +3138,15 @@ async function retryMessage(btn) {
 
     if (!branchNode) return;
 
+    // 记录该 AI 分支消息生成时使用的模型
+    const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
+
     // 创建新的AI消息（新分支）
     const newAIMessageId = generateId16();
     const newAIMessage = {
       id: newAIMessageId,
       role: 'assistant',
+      model: aiModelName,
       content: '\n',  // 初始显示换行符
       parentId: branchNode.id,  // 修改：指向分支节点
       children: [],
@@ -3174,11 +3239,15 @@ async function retryMessage(btn) {
       conv.messages[messageId].parentId = branchNode.id;
     }
 
+    // 记录该 AI 分支消息生成时使用的模型
+    const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
+
     // 创建新的AI消息（新分支）
     const newAIMessageId = generateId16();
     const newAIMessage = {
       id: newAIMessageId,
       role: 'assistant',
+      model: aiModelName,
       content: '\n',  // 初始显示换行符
       parentId: branchNode.id,  // 修改：指向分支节点
       children: [],
@@ -3424,10 +3493,12 @@ function editMessage(btn) {
 
       // 如果是用户消息，生成AI回复
       if (message.role === 'user') {
+        const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
         const newAIMessageId = generateId16();
         const newAIMessage = {
           id: newAIMessageId,
           role: 'assistant',
+          model: aiModelName,
           content: '\n',  // 初始显示换行符
           parentId: newUserMessageId,
           children: [],
@@ -3569,7 +3640,11 @@ function setGenerating(on) {
   btn.classList.toggle('stop-mode',on);
   g('send-icon').style.display = on?'none':'';
   g('stop-icon').style.display = on?'':'none';
-  btn.title = on?'停止生成':'发送 (Ctrl+Enter)';
+  if (on) {
+    btn.title = '停止生成';
+  } else {
+    updateInputHints();
+  }
 }
 
 function setStatus(s,t) {
@@ -3942,8 +4017,7 @@ async function toggleOpt(key) {
   document.addEventListener('click', e => {
     const sel = g('preset-selector');
     if (sel && !sel.contains(e.target)) {
-      g('preset-dropdown').classList.add('hidden');
-      g('preset-btn').classList.remove('open');
+      closePresetDropdown();
     }
   });
 })();

@@ -28,7 +28,7 @@ fi
 if [ ! -f ".env" ]; then
     echo "⚙️  创建默认配置文件..."
     cat > .env << EOF
-PORT=3000
+PORT=5638
 SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 NODE_ENV=development
 EOF
@@ -40,7 +40,7 @@ fi
 echo "🎯 启动服务器..."
 echo ""
 echo "================================================"
-echo "  访问地址: http://localhost:3000"
+echo "  访问地址: http://localhost:5638"
 echo "  按 Ctrl+C 停止服务器"
 echo "================================================"
 echo ""

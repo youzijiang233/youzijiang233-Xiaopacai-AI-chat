@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.3.6-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -63,7 +63,7 @@
 
 #### 2️⃣ Web 服务器版（新增！）
 - 多用户在线服务
-- 数据存储在服务器数据库
+- 数据存储在服务器文件（JSON）
 - 支持用户注册/登录
 - 多设备同步
 - 适合团队或公开部署
@@ -119,18 +119,16 @@ cd web-version
 ./start.sh
 ```
 
-然后访问 `http://localhost:3000`
+然后访问 `http://localhost:5638`
 
 #### 详细文档
 
 查看完整的部署指南：
-- **[快速开始](QUICKSTART.md)** - 3分钟快速启动
-- **[完整文档](web-version/INDEX.md)** - 文档索引
-- **[部署指南](web-version/README.md)** - 生产环境部署
+- **[部署指南](web-version/README.md)** - 启动与生产环境部署
 
 #### Web 版特性
 - ✅ 用户注册/登录系统
-- ✅ 服务器端数据存储（SQLite）
+- ✅ 服务器端文件存储（JSON）
 - ✅ 多用户支持，数据隔离
 - ✅ Session 会话管理
 - ✅ 密码加密存储
@@ -150,9 +148,10 @@ cd web-version
 
 ### 基础使用
 1. 在底部输入框输入消息
-2. 按 `Enter`（默认）或点击发送按钮发送消息
+2. 按发送快捷键或点击发送按钮发送消息
 3. 等待 AI 回复（会看到打字光标）
-4. 可在功能选项中切换发送按键模式
+4. 默认按键：桌面版 `Enter` 发送（`Ctrl+Enter` 换行）；Web 版 `Ctrl+Enter` 发送（`Enter` 换行）
+5. 可在功能选项中切换发送按键模式
 
 ### 高级功能
 
@@ -206,6 +205,18 @@ xiaopacai-AI-chat/
 - [ ] 可选的云同步
 
 ## 📝 版本历史
+
+### v1.4.0 (2026-03-08)
+- 🚀 版本号升级到 1.4.0（桌面端与 Web 端统一）
+- 🎨 默认主题改为亮色（桌面端与 Web 端）
+- ✨ 新增 AI 消息级模型记录与展示，历史消息显示其生成时模型
+- 🧭 优化下拉菜单交互：打开一个菜单会自动关闭其他菜单
+- 🛠️ 修复 API 格式字段偶发异常显示问题（格式值统一规范化）
+- 🖱️ 桌面端新增中文右键菜单（撤销/重做/剪切/复制/粘贴/全选）
+- 🔗 桌面端外链改为系统浏览器打开，避免在应用内跳转
+- 📱 Web 端移动端输入区适配增强，优化竖屏输入体验
+- ⌨️ Web 端默认发送模式改为 `Ctrl+Enter` 发送（`Enter` 换行）
+- 🔐 Web 启动脚本首次初始化 `.env` 时自动生成随机 `SESSION_SECRET`
 
 ### v1.3.6 (2025-02-25)
 - ✨ 添加消息字体大小调节滑条（12px - 24px）

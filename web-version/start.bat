@@ -30,9 +30,13 @@ if not exist "node_modules" (
 REM 检查环境变量文件
 if not exist ".env" (
     echo ⚙️  创建默认配置文件...
+    for /f "delims=" %%i in ('node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"') do set "SESSION_SECRET=%%i"
+    if not defined SESSION_SECRET (
+        set "SESSION_SECRET=change-this-secret-key-in-production"
+    )
     (
-        echo PORT=3000
-        echo SESSION_SECRET=change-this-secret-key-in-production
+        echo PORT=5638
+        echo SESSION_SECRET=%SESSION_SECRET%
         echo NODE_ENV=development
     ) > .env
     echo ✅ 配置文件已创建: .env
@@ -43,7 +47,7 @@ REM 启动服务器
 echo 🎯 启动服务器...
 echo.
 echo ================================================
-echo   访问地址: http://localhost:3000
+echo   访问地址: http://localhost:5638
 echo   按 Ctrl+C 停止服务器
 echo ================================================
 echo.

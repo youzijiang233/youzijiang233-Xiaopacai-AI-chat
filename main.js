@@ -1,8 +1,12 @@
-const { app, BrowserWindow, Menu, ipcMain, safeStorage } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, safeStorage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 
 let mainWindow;
+
+function isExternalHttpUrl(url) {
+  return typeof url === 'string' && /^https?:\/\//i.test(url);
+}
 
 // 数据存储目录
 // 开发环境：项目根目录/data
@@ -162,6 +166,52 @@ function createWindow() {
 
   // Remove default menu bar
   Menu.setApplicationMenu(null);
+
+  // 外部链接：统一在系统浏览器打开，避免在应用内跳转
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isExternalHttpUrl(url)) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isExternalHttpUrl(url)) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
+  // 右键菜单：桌面端支持复制/粘贴等常用编辑操作
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    if (!mainWindow) return;
+
+    const wc = mainWindow.webContents;
+    const template = [];
+    const editFlags = params.editFlags || {};
+    const hasSelection = Boolean(params.selectionText && params.selectionText.trim().length > 0);
+
+    if (params.isEditable) {
+      template.push(
+        { label: '撤销', enabled: editFlags.canUndo !== false, click: () => wc.undo() },
+        { label: '重做', enabled: editFlags.canRedo !== false, click: () => wc.redo() },
+        { type: 'separator' },
+        { label: '剪切', enabled: editFlags.canCut !== false, click: () => wc.cut() },
+        { label: '复制', enabled: editFlags.canCopy !== false, click: () => wc.copy() },
+        { label: '粘贴', enabled: editFlags.canPaste !== false, click: () => wc.paste() },
+        { label: '全选', enabled: editFlags.canSelectAll !== false, click: () => wc.selectAll() }
+      );
+    } else if (hasSelection) {
+      template.push(
+        { label: '复制', enabled: editFlags.canCopy !== false, click: () => wc.copy() },
+        { type: 'separator' },
+        { label: '全选', enabled: editFlags.canSelectAll !== false, click: () => wc.selectAll() }
+      );
+    }
+
+    if (template.length === 0) return;
+    Menu.buildFromTemplate(template).popup({ window: mainWindow });
+  });
 
   // 窗口关闭前通知渲染进程保存数据
   mainWindow.on('close', (e) => {

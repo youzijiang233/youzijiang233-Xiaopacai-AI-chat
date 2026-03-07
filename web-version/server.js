@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5638;
 
 // 数据目录
 const DATA_DIR = path.join(__dirname, 'data');
@@ -46,6 +46,18 @@ async function saveUsers(users) {
 // 获取用户目录
 function getUserDir(username) {
   return path.join(DATA_DIR, username);
+}
+
+// 清理对话标题，确保可安全用于文件名（Windows/Linux）
+function sanitizeConversationTitleForFilename(title) {
+  let clean = String(title ?? '')
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[. ]+$/g, '');
+
+  if (!clean) clean = 'untitled';
+  return clean.substring(0, 50);
 }
 
 // 确保用户目录存在
@@ -270,7 +282,9 @@ app.post('/api/conversations', requireAuth, async (req, res) => {
     }
 
     const convsDir = path.join(getUserDir(req.session.username), 'conversations');
-    const title = conversation.title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+    await fs.mkdir(convsDir, { recursive: true });
+
+    const title = sanitizeConversationTitleForFilename(conversation.title);
     const filename = path.join(convsDir, `${title}_${conversation.id}.json`);
 
     // 删除该对话ID的所有旧文件（处理标题改变的情况）

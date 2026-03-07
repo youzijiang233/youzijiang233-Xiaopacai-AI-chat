@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -16,6 +16,7 @@
   --accent:#5b8dee; --accent2:#4070d4; --accent-glow:rgba(91,141,238,0.15);
   --green:#4ecb8c; --red:#e05c6c; --yellow:#f5c542;
   --rail:52px; --panel:292px;
+  --app-height:100vh;
 }
 :root[data-theme="light"] {
   --bg:#f5f7fa; --bg2:#ffffff; --bg3:#e8ecf1; --bg4:#dfe3e8;
@@ -44,7 +45,8 @@
 :root[data-theme="light"] .rail{box-shadow:1px 0 0 rgba(0,0,0,0.06)}
 :root[data-theme="light"] .panel{box-shadow:-1px 0 0 rgba(0,0,0,0.06)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+html,body{height:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:var(--app-height);overflow:hidden;display:flex;flex-direction:column}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 0;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
@@ -371,7 +373,7 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
 /* 移动端适配：防止输入框被浏览器工具栏遮挡 */
 @media (max-width: 768px) {
   .input-bar-outer {
-    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .input-bar {
     padding: 10px 16px 12px;
@@ -448,6 +450,14 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
   .message-row.user-row .bubble-content.user-msg {
     max-width: calc(100% - 32px);
   }
+}
+
+/* 移动端竖屏：隐藏底部快捷键提示，仅保留输入框区域 */
+body.mobile-portrait .input-footer {
+  display: none;
+}
+body.mobile-portrait .input-bar {
+  padding-bottom: 10px;
 }
 
 /* 桌面端隐藏移动端按钮 */
@@ -819,7 +829,7 @@ let isGenerating = false;
 let streamEnabled = true;
 let mdEnabled = true;
 let hlEnabled = true;
-let enterToSend = true; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
+let enterToSend = false; // true: Enter发送, Ctrl+Enter换行; false: Enter换行, Ctrl+Enter发送
 let messageFontSize = 14; // 消息字体大小（px）
 let messageWidth = 1080; // 消息区域宽度（px）
 let activePanel = 'settings';
@@ -969,11 +979,31 @@ let activePresetId = null;
 let fullApiKeys = {}; // { presetId: plaintext key }
 
 function getDefaultPresets() {
-  return [{ id: 'preset_default', name: '默认', url: 'https://once.novai.su/v1/chat/completions', model: '', format: 'openai', provider: '' }];
+  return [{ id: 'preset_default', name: '新预设', url: '', model: '', format: 'openai' }];
 }
 
 function getActivePreset() {
   return apiPresets.find(p => p.id === activePresetId) || apiPresets[0];
+}
+
+const FORMAT_NAMES = {
+  openai: 'OpenAI 兼容（默认）',
+  claude: 'Anthropic Claude'
+};
+
+function normalizeFormatValue(value) {
+  if (value === 'openai' || value === FORMAT_NAMES.openai) return 'openai';
+  if (value === 'claude' || value === FORMAT_NAMES.claude) return 'claude';
+  return 'openai';
+}
+
+function setApiFormatInput(value) {
+  const normalized = normalizeFormatValue(value);
+  const input = g('api-format');
+  if (!input) return normalized;
+  input.dataset.format = normalized;
+  input.value = FORMAT_NAMES[normalized];
+  return normalized;
 }
 
 function renderPresetDropdown() {
@@ -988,29 +1018,52 @@ function renderPresetDropdown() {
     `<div class="preset-divider"></div><div class="preset-new-btn" onclick="addNewPreset()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建预设</div>`;
 }
 
+function closePresetDropdown() {
+  const dd = g('preset-dropdown');
+  const btn = g('preset-btn');
+  if (dd) dd.classList.add('hidden');
+  if (btn) btn.classList.remove('open');
+}
+
+function closeApiConfigDropdowns(except = '') {
+  const dropdownMap = {
+    model: ['model-dropdown', 'model-dropdown-btn'],
+    provider: ['provider-dropdown', 'provider-dropdown-btn'],
+    format: ['format-dropdown', 'format-dropdown-btn']
+  };
+
+  Object.entries(dropdownMap).forEach(([name, [dropdownId, btnId]]) => {
+    if (name === except) return;
+    const dropdown = g(dropdownId);
+    const btn = g(btnId);
+    if (dropdown) dropdown.classList.remove('show');
+    if (btn) btn.classList.remove('open');
+  });
+}
+
 function togglePresetDropdown() {
   const dd = g('preset-dropdown'), btn = g('preset-btn');
   const isOpen = !dd.classList.contains('hidden');
-  if (isOpen) { dd.classList.add('hidden'); btn.classList.remove('open'); }
-  else { renderPresetDropdown(); dd.classList.remove('hidden'); btn.classList.add('open'); }
+  if (isOpen) {
+    closePresetDropdown();
+  } else {
+    closeApiConfigDropdowns();
+    renderPresetDropdown();
+    dd.classList.remove('hidden');
+    btn.classList.add('open');
+  }
 }
 
 function selectPreset(id) {
   activePresetId = id;
   const p = getActivePreset();
+  p.format = setApiFormatInput(p.format);
   g('preset-btn-name').textContent = p.name;
   g('preset-dropdown').classList.add('hidden');
   g('preset-btn').classList.remove('open');
   g('api-url').value = p.url;
   g('model-name').value = p.model;
   g('model-badge').textContent = p.model;
-
-  // 显示格式名称
-  const formatNames = {
-    'openai': 'OpenAI 兼容（默认）',
-    'claude': 'Anthropic Claude'
-  };
-  g('api-format').value = formatNames[p.format] || formatNames['openai'];
 
   // 加载提供商字段
   g('provider-name').value = p.provider || '';
@@ -1036,7 +1089,7 @@ function onPresetFieldChange() {
   if (!p) return;
   p.url = g('api-url').value;
   p.model = g('model-name').value;
-  p.format = g('api-format').value;
+  p.format = setApiFormatInput(g('api-format')?.dataset?.format || p.format || g('api-format').value);
 
   // 检查是否为 OpenRouter，显示/隐藏提供商字段
   const isOpenRouter = p.url && p.url.includes('openrouter.ai');
@@ -1070,6 +1123,8 @@ function toggleModelDropdown(e) {
     dropdown.classList.remove('show');
     btn.classList.remove('open');
   } else {
+    closePresetDropdown();
+    closeApiConfigDropdowns('model');
     // 加载当前 preset 的模型列表
     const preset = getActivePreset();
     if (preset && presetModels[preset.id]) {
@@ -1216,6 +1271,8 @@ function toggleProviderDropdown(e) {
     dropdown.classList.remove('show');
     btn.classList.remove('open');
   } else {
+    closePresetDropdown();
+    closeApiConfigDropdowns('provider');
     dropdown.classList.add('show');
     btn.classList.add('open');
   }
@@ -1242,23 +1299,20 @@ function toggleFormatDropdown(e) {
     dropdown.classList.remove('show');
     btn.classList.remove('open');
   } else {
+    closePresetDropdown();
+    closeApiConfigDropdowns('format');
     dropdown.classList.add('show');
     btn.classList.add('open');
   }
 }
 
 function selectFormat(formatValue) {
-  const input = g('api-format');
-  const formatNames = {
-    'openai': 'OpenAI 兼容（默认）',
-    'claude': 'Anthropic Claude'
-  };
-  input.value = formatNames[formatValue] || formatValue;
+  const normalizedFormat = setApiFormatInput(formatValue);
 
   // 更新 preset
   const p = getActivePreset();
   if (p) {
-    p.format = formatValue;
+    p.format = normalizedFormat;
     saveSettings();
   }
 
@@ -1269,21 +1323,10 @@ function selectFormat(formatValue) {
 
 // 点击外部关闭下拉菜单
 document.addEventListener('click', (e) => {
-  const modelDropdown = g('model-dropdown');
-  const providerDropdown = g('provider-dropdown');
-  const formatDropdown = g('format-dropdown');
-  const modelBtn = g('model-dropdown-btn');
-  const providerBtn = g('provider-dropdown-btn');
-  const formatBtn = g('format-dropdown-btn');
   const wrapper = e.target.closest('.model-input-wrapper');
 
   if (!wrapper) {
-    if (modelDropdown) modelDropdown.classList.remove('show');
-    if (providerDropdown) providerDropdown.classList.remove('show');
-    if (formatDropdown) formatDropdown.classList.remove('show');
-    if (modelBtn) modelBtn.classList.remove('open');
-    if (providerBtn) providerBtn.classList.remove('open');
-    if (formatBtn) formatBtn.classList.remove('open');
+    closeApiConfigDropdowns();
   }
 });
 
@@ -1364,6 +1407,8 @@ function startRenamePreset(e, id) {
   const input = document.createElement('input');
   input.className = 'preset-item-name-input';
   input.value = oldName;
+  input.addEventListener('pointerdown', ev => ev.stopPropagation());
+  input.addEventListener('click', ev => ev.stopPropagation());
   nameEl.replaceWith(input);
   input.focus(); input.select();
   let saved = false;
@@ -1648,7 +1693,7 @@ async function saveSettings() {
     stream: streamEnabled, md: mdEnabled, hl: hlEnabled, enterToSend: enterToSend,
     messageFontSize: messageFontSize,
     messageWidth: messageWidth,
-    theme: document.documentElement.getAttribute('data-theme') || 'dark',
+    theme: document.documentElement.getAttribute('data-theme') || 'light',
     activePanel,
     collapseStates: getCollapseStates(),
     zoomLevel: zoomLevel,
@@ -1664,12 +1709,16 @@ async function loadSettings() {
     for (const p of s.presets) {
       fullApiKeys[p.id] = p.key ? await decryptText(p.key) : '';
     }
-    apiPresets = s.presets.map(p => { const {key, ...rest} = p; return rest; });
+    apiPresets = s.presets.map(p => {
+      const { key, ...rest } = p;
+      rest.format = normalizeFormatValue(rest.format);
+      return rest;
+    });
     activePresetId = s.activePresetId || apiPresets[0].id;
   } else {
     apiPresets = getDefaultPresets();
     activePresetId = apiPresets[0].id;
-    fullApiKeys[activePresetId] = 'sk-wRfzWMRn7kKLlowauPZcI24zMbWBFc4tAQ8rkqAWxS0lk6vA';
+    fullApiKeys[activePresetId] = '';
   }
 
   // 填充当前预设字段
@@ -1678,13 +1727,7 @@ async function loadSettings() {
   g('api-url').value = p.url;
   g('model-name').value = p.model;
   g('model-badge').textContent = p.model;
-
-  // 显示格式名称
-  const formatNames = {
-    'openai': 'OpenAI 兼容（默认）',
-    'claude': 'Anthropic Claude'
-  };
-  g('api-format').value = formatNames[p.format || 'openai'];
+  p.format = setApiFormatInput(p.format);
 
   // 加载提供商字段
   g('provider-name').value = p.provider || '';
@@ -1702,7 +1745,12 @@ async function loadSettings() {
     g('api-key').value = plainKey.substring(0,8) + '*'.repeat(plainKey.length-12) + plainKey.substring(plainKey.length-4);
   } else { g('api-key').value = plainKey; }
 
-  if (!s) return;
+  if (!s) {
+    // 首次运行时也要同步默认发送模式的 UI，避免提示与真实行为不一致
+    g('enter-send-toggle').classList.toggle('on', enterToSend);
+    updateInputHints();
+    return;
+  }
   setv('s-max-tokens',  s.maxTokens   ?? 0);
   setv('s-chat-memory', s.chatMemory  ?? 10);
   setv('s-temp',        s.temp        ?? 1);
@@ -1716,7 +1764,7 @@ async function loadSettings() {
   streamEnabled = s.stream !== false;
   mdEnabled     = s.md     !== false;
   hlEnabled     = s.hl     !== false;
-  enterToSend   = s.enterToSend !== false;
+  enterToSend   = s.enterToSend === true;
   messageFontSize = s.messageFontSize ?? 14;
   messageWidth = s.messageWidth ?? 1080;
   g('stream-toggle').classList.toggle('on', streamEnabled);
@@ -1746,7 +1794,7 @@ async function loadSettings() {
   }
 
   // 加载主题
-  const theme = s.theme || 'dark';
+  const theme = s.theme || 'light';
   document.documentElement.setAttribute('data-theme', theme);
 
   refreshDisplays();
@@ -1776,7 +1824,7 @@ function syncParam(el, valId, fmt) {
 
 // 主题切换
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', newTheme);
   saveSettings();
@@ -1831,10 +1879,48 @@ const CACHE_TTL = 5000; // 5秒缓存
 // 完整对话内容缓存（用于服务器模式）
 const fullConvCache = new Map(); // key: convId, value: {conv, timestamp}
 const FULL_CONV_CACHE_TTL = 60000; // 60秒缓存
+const FULL_CONV_CACHE_MAX = 100; // 最大缓存条目数
+
+function toConvMeta(conv) {
+  if (!conv) return null;
+
+  let messageCount = conv.messageCount;
+  if (messageCount === undefined && conv.messages) {
+    messageCount = Object.values(conv.messages).filter(m => m.role !== 'system').length;
+  }
+
+  return {
+    id: conv.id,
+    title: conv.title,
+    updatedAt: conv.updatedAt,
+    createdAt: conv.createdAt,
+    messageCount: messageCount ?? 0
+  };
+}
+
+function pruneFullConvCache() {
+  const now = Date.now();
+
+  for (const [id, cached] of fullConvCache) {
+    if (!cached || (now - (cached.timestamp || 0) > FULL_CONV_CACHE_TTL)) {
+      fullConvCache.delete(id);
+    }
+  }
+
+  if (fullConvCache.size > FULL_CONV_CACHE_MAX) {
+    const entries = [...fullConvCache.entries()]
+      .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+    const removeCount = fullConvCache.size - FULL_CONV_CACHE_MAX;
+    for (let i = 0; i < removeCount; i++) {
+      fullConvCache.delete(entries[i][0]);
+    }
+  }
+}
 
 // 获取所有对话列表（从conversations文件夹读取所有对话文件）
 async function getConvs(forceRefresh = false) {
   const now = Date.now();
+  pruneFullConvCache();
 
   // 使用缓存（如果未过期且不强制刷新）
   if (!forceRefresh && convsCache && (now - convsCacheTime < CACHE_TTL)) {
@@ -1895,22 +1981,30 @@ async function getConvs(forceRefresh = false) {
 }
 
 // 加载单个对话的完整内容（服务器模式专用）
-async function loadConvFromServer(id) {
+async function loadConvFromServer(id, expectedUpdatedAt = null, forceRefresh = false) {
   try {
+    pruneFullConvCache();
+
     // 检查缓存
     const cached = fullConvCache.get(id);
-    if (cached && (Date.now() - cached.timestamp < FULL_CONV_CACHE_TTL)) {
-      return cached.conv;
+    if (!forceRefresh && cached && (Date.now() - cached.timestamp < FULL_CONV_CACHE_TTL)) {
+      if (expectedUpdatedAt == null || cached.updatedAt === expectedUpdatedAt) {
+        return cached.conv;
+      }
     }
 
     const data = await serverFetch(`/api/conversations/${id}`);
     if (data.success) {
+      const conversation = data.conversation;
+
       // 缓存完整对话
       fullConvCache.set(id, {
-        conv: data.conversation,
+        conv: conversation,
+        updatedAt: conversation.updatedAt,
         timestamp: Date.now()
       });
-      return data.conversation;
+      pruneFullConvCache();
+      return conversation;
     }
     return null;
   } catch (e) {
@@ -1926,17 +2020,26 @@ async function getCurrentConv() {
   const convs = await getConvs();
   let conv = convs.find(c => c.id === currentConvId);
 
-  // 如果是服务器模式且对话没有 messages（只有元数据），则加载完整内容
-  if (conv && useServerStorage && !isElectron && !conv.messages) {
-    conv = await loadConvFromServer(currentConvId);
+  // 服务器模式：convsCache 只保留元数据，完整内容从 fullConvCache 或接口获取
+  if (conv && useServerStorage && !isElectron) {
+    const expectedUpdatedAt = conv.updatedAt;
+    const cached = fullConvCache.get(currentConvId);
+    if (cached && (Date.now() - cached.timestamp < FULL_CONV_CACHE_TTL) &&
+        (expectedUpdatedAt == null || cached.updatedAt === expectedUpdatedAt)) {
+      return cached.conv;
+    }
 
-    // 更新缓存
+    conv = await loadConvFromServer(currentConvId, expectedUpdatedAt);
+
+    // 更新列表缓存（保持元数据形态）
     if (conv && convsCache) {
       const index = convsCache.findIndex(c => c.id === currentConvId);
       if (index !== -1) {
-        convsCache[index] = conv;
+        convsCache[index] = toConvMeta(conv);
       }
     }
+
+    return conv;
   }
 
   return conv;
@@ -1950,7 +2053,8 @@ async function saveConv(conv, updateTime = true) {
   }
 
   // 更新完整对话缓存
-  fullConvCache.set(conv.id, { conv, timestamp: Date.now() });
+  fullConvCache.set(conv.id, { conv, updatedAt: conv.updatedAt, timestamp: Date.now() });
+  pruneFullConvCache();
 
   // 自动生成标题（仅在第一次且标题为"新对话"时）
   const oldTitle = conv.title;
@@ -2002,11 +2106,12 @@ async function saveConv(conv, updateTime = true) {
 
   // 增量更新对话列表缓存，避免频繁全量刷新
   if (convsCache) {
+    const cacheItem = (useServerStorage && !isElectron) ? toConvMeta(conv) : conv;
     const idx = convsCache.findIndex(c => c.id === conv.id);
     if (idx >= 0) {
-      convsCache[idx] = conv;
+      convsCache[idx] = cacheItem;
     } else {
-      convsCache.unshift(conv);
+      convsCache.unshift(cacheItem);
     }
     convsCache.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     convsCacheTime = Date.now();
@@ -2127,17 +2232,21 @@ async function loadConv(id) {
   let conv;
 
   if (useServerStorage && !isElectron) {
+    const convs = await getConvs();
+    const convMeta = convs.find(c => c.id === id);
+    const expectedUpdatedAt = convMeta ? convMeta.updatedAt : null;
+
     // 服务器模式：从服务器加载完整对话内容
-    conv = await loadConvFromServer(id);
+    conv = await loadConvFromServer(id, expectedUpdatedAt);
     if (!conv) return;
 
-    // 更新缓存中的对话数据
+    // 更新缓存中的对话元数据
     if (convsCache) {
       const index = convsCache.findIndex(c => c.id === id);
       if (index !== -1) {
-        convsCache[index] = conv;
+        convsCache[index] = toConvMeta(conv);
       } else {
-        convsCache.push(conv);
+        convsCache.push(toConvMeta(conv));
       }
     }
   } else {
@@ -2231,14 +2340,15 @@ function startRenameConv(e, id) {
       renderConvList(await getConvs(true)); // 强制刷新缓存
     };
 
-    input.addEventListener('keydown', ev => {
+    input.addEventListener('keydown', async ev => {
       if (ev.key === 'Enter') {
         ev.preventDefault();
         finish();
       }
       if (ev.key === 'Escape') {
         saved = true;
-        renderConvList(getConvs(true).then(convs => convs)); // 强制刷新缓存
+        const latestConvs = await getConvs(true);
+        renderConvList(latestConvs); // 强制刷新缓存
       }
     });
     input.addEventListener('blur', finish);
@@ -2254,7 +2364,7 @@ async function duplicateConv(id, e) {
 
   // 如果是服务器模式且对话没有 messages（只有元数据），则加载完整内容
   if (useServerStorage && !isElectron && !conv.messages) {
-    conv = await loadConvFromServer(id);
+    conv = await loadConvFromServer(id, conv.updatedAt);
     if (!conv) return;
   }
 
@@ -2432,7 +2542,7 @@ async function renderMessages() {
 
   // 渲染每条消息到 fragment
   visibleMessages.forEach(msg => {
-    const bubble = createBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id));
+    const bubble = createBubble(msg.role, msg.content, false, msg.id, branchPoints.get(msg.id), msg.model);
     fragment.appendChild(bubble);
   });
 
@@ -2532,11 +2642,15 @@ async function sendMessage(retryText = null, isRetry = false) {
 
   conv.messages[userMessageId] = userMessage;
 
+  // 记录该 AI 消息生成时使用的模型（用于历史消息独立展示）
+  const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
+
   // 创建AI消息
   const aiMessageId = generateId16();
   const aiMessage = {
     id: aiMessageId,
     role: 'assistant',
+    model: aiModelName,
     content: '\n',  // 初始显示换行符
     parentId: userMessageId,
     children: [],
@@ -2803,7 +2917,7 @@ async function sendMessage(retryText = null, isRetry = false) {
     let convToSave = conv;
     if (useServerStorage && !isElectron) {
       // 服务器模式：重新加载完整对话
-      const freshConv = await loadConvFromServer(currentConvId);
+      const freshConv = await loadConvFromServer(currentConvId, null, true);
       if (freshConv && freshConv.messages) {
         // 确保 AI 消息存在，如果不存在则添加
         if (!freshConv.messages[aiMessageId]) {
@@ -2828,7 +2942,7 @@ async function sendMessage(retryText = null, isRetry = false) {
         // 在保存前重新加载完整对话，确保数据一致性
         let convToSave = conv;
         if (useServerStorage && !isElectron) {
-          const freshConv = await loadConvFromServer(currentConvId);
+          const freshConv = await loadConvFromServer(currentConvId, null, true);
           if (freshConv && freshConv.messages) {
             // 确保 AI 消息存在
             if (!freshConv.messages[aiMessageId]) {
@@ -3099,7 +3213,7 @@ async function sendMessageToTree(userText, aiMessageId) {
     let convToSave = conv;
     if (useServerStorage && !isElectron) {
       // 服务器模式：重新加载完整对话
-      const freshConv = await loadConvFromServer(currentConvId);
+      const freshConv = await loadConvFromServer(currentConvId, null, true);
       if (freshConv && freshConv.messages) {
         // 确保 AI 消息存在，如果不存在则添加
         if (!freshConv.messages[aiMessageId]) {
@@ -3124,7 +3238,7 @@ async function sendMessageToTree(userText, aiMessageId) {
         // 在保存前重新加载完整对话，确保数据一致性
         let convToSave = conv;
         if (useServerStorage && !isElectron) {
-          const freshConv = await loadConvFromServer(currentConvId);
+          const freshConv = await loadConvFromServer(currentConvId, null, true);
           if (freshConv && freshConv.messages) {
             // 确保 AI 消息存在
             if (!freshConv.messages[aiMessageId]) {
@@ -3164,12 +3278,12 @@ function g(id){ return document.getElementById(id); }
  * @param {object} branchNode - 分支节点（如果该消息是分支的第一条消息）
  */
 function appendBubble(role, text, empty=false, messageId=null, branchNode=null) {
-  const bubble = createBubble(role, text, empty, messageId, branchNode);
+  const bubble = createBubble(role, text, empty, messageId, branchNode, null);
   g('messages').appendChild(bubble);
   return bubble;
 }
 
-function createBubble(role, text, empty=false, messageId=null, branchNode=null) {
+function createBubble(role, text, empty=false, messageId=null, branchNode=null, messageModel=null) {
   const isUser = role==='user';
   const row = document.createElement('div');
   row.className = 'message-row' + (isUser ? ' user-row' : '');
@@ -3211,10 +3325,12 @@ function createBubble(role, text, empty=false, messageId=null, branchNode=null) 
       ${branchManager}
     </div>`;
 
-  const modelName = isUser ? '你' : (getActivePreset()?.model || 'AI');
+  const modelName = isUser
+    ? '你'
+    : (((messageModel || '').trim()) || getActivePreset()?.model || 'AI');
   row.innerHTML = `<div class="avatar ${role}">${isUser?'U':'AI'}</div>
     <div class="bubble">
-      <div class="bubble-name ${isUser?'user-name':'ai-name'}">${modelName}</div>
+      <div class="bubble-name ${isUser?'user-name':'ai-name'}">${escapeHtml(modelName)}</div>
       <div class="bubble-content ${isUser?'user-msg':'ai-msg'}" style="font-size:${messageFontSize}px">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
       ${actions}
     </div>`;
@@ -3431,11 +3547,15 @@ async function retryMessage(btn) {
 
     if (!branchNode) return;
 
+    // 记录该 AI 分支消息生成时使用的模型
+    const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
+
     // 创建新的AI消息（新分支）
     const newAIMessageId = generateId16();
     const newAIMessage = {
       id: newAIMessageId,
       role: 'assistant',
+      model: aiModelName,
       content: '\n',  // 初始显示换行符
       parentId: branchNode.id,  // 修改：指向分支节点
       children: [],
@@ -3528,11 +3648,15 @@ async function retryMessage(btn) {
       conv.messages[messageId].parentId = branchNode.id;
     }
 
+    // 记录该 AI 分支消息生成时使用的模型
+    const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
+
     // 创建新的AI消息（新分支）
     const newAIMessageId = generateId16();
     const newAIMessage = {
       id: newAIMessageId,
       role: 'assistant',
+      model: aiModelName,
       content: '\n',  // 初始显示换行符
       parentId: branchNode.id,  // 修改：指向分支节点
       children: [],
@@ -3776,10 +3900,12 @@ function editMessage(btn) {
 
       // 如果是用户消息，生成AI回复
       if (message.role === 'user') {
+        const aiModelName = ((getActivePreset()?.model || '').trim() || 'AI');
         const newAIMessageId = generateId16();
         const newAIMessage = {
           id: newAIMessageId,
           role: 'assistant',
+          model: aiModelName,
           content: '\n',  // 初始显示换行符
           parentId: newUserMessageId,
           children: [],
@@ -3919,7 +4045,11 @@ function setGenerating(on) {
   btn.classList.toggle('stop-mode',on);
   g('send-icon').style.display = on?'none':'';
   g('stop-icon').style.display = on?'':'none';
-  btn.title = on?'停止生成':'发送 (Ctrl+Enter)';
+  if (on) {
+    btn.title = '停止生成';
+  } else {
+    updateInputHints();
+  }
 }
 
 function setStatus(s,t) {
@@ -3952,14 +4082,20 @@ function updateInputHints(){
   const input = g('user-input');
   const sendBtn = g('send-btn');
   const keyHint = g('key-hint');
+  if (document.body && document.body.classList.contains('mobile-portrait')) {
+    input.placeholder = '输入消息…';
+    sendBtn.title = '发送';
+    if (keyHint) keyHint.textContent = '';
+    return;
+  }
   if(enterToSend){
     input.placeholder = '输入消息，Enter 发送…';
     sendBtn.title = '发送 (Enter)';
-    keyHint.innerHTML = '<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 换行';
+    if (keyHint) keyHint.innerHTML = '<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 换行';
   } else {
     input.placeholder = '输入消息，Ctrl+Enter 发送…';
     sendBtn.title = '发送 (Ctrl+Enter)';
-    keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
+    if (keyHint) keyHint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 &nbsp;·&nbsp; <kbd>Enter</kbd> 换行';
   }
 }
 
@@ -4210,8 +4346,52 @@ async function toggleOpt(key) {
   saveSettings();
 }
 
+// ══ MOBILE VIEWPORT FIX ══
+// 在移动端浏览器（如 Edge）中，100vh 可能包含工具栏，导致底部输入栏被遮挡。
+// 使用 visualViewport 动态同步可视高度，确保输入栏始终在可见区域内。
+function isMobilePortraitDevice() {
+  if (isElectron) return false;
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  const isTouchLike = window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches;
+  const ua = navigator.userAgent || '';
+  const uaMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone|Mobi/i.test(ua);
+  return isPortrait && (isTouchLike || uaMobile);
+}
+
+function syncMobilePortraitUI() {
+  if (isElectron) return;
+  const shouldEnable = isMobilePortraitDevice();
+  const hadClass = document.body.classList.contains('mobile-portrait');
+  document.body.classList.toggle('mobile-portrait', shouldEnable);
+  if (hadClass !== shouldEnable) {
+    updateInputHints();
+  }
+}
+
+function syncViewportHeight() {
+  if (isElectron) return;
+  const vv = window.visualViewport;
+  const nextHeight = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', `${Math.round(nextHeight)}px`);
+  syncMobilePortraitUI();
+}
+
+function setupViewportSync() {
+  if (isElectron) return;
+  syncViewportHeight();
+  window.addEventListener('resize', syncViewportHeight, { passive: true });
+  window.addEventListener('orientationchange', syncViewportHeight, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncViewportHeight, { passive: true });
+    window.visualViewport.addEventListener('scroll', syncViewportHeight, { passive: true });
+  }
+}
+
 // ══ INIT ══
 (async function init(){
+  setupViewportSync();
+
   // 服务器模式：检查登录状态
   if (useServerStorage) {
     const authData = await serverFetch('/api/auth/me');
@@ -4295,8 +4475,7 @@ async function toggleOpt(key) {
   document.addEventListener('click', e => {
     const sel = g('preset-selector');
     if (sel && !sel.contains(e.target)) {
-      g('preset-dropdown').classList.add('hidden');
-      g('preset-btn').classList.remove('open');
+      closePresetDropdown();
     }
   });
 })();
