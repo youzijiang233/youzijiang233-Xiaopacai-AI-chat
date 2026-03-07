@@ -104,10 +104,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 
 /* FIELDS */
 .field{display:flex;flex-direction:column;gap:5px}
+.field-hidden{display:none}
+.field-mt-12{margin-top:12px}
 .field-label{font-size:11.5px;font-weight:500;color:var(--text2);display:flex;align-items:center;justify-content:space-between}
 .field-hint{font-size:10.5px;color:var(--text3);font-weight:400}
 .input,.textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:7px;font-family:'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s;width:100%;outline:none}
 .input{padding:7px 10px;height:33px;font-size:12px}
+.input-clickable{cursor:pointer}
 .input:focus,.textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
 .textarea{padding:8px 10px;resize:vertical;min-height:70px;line-height:1.5;font-size:12px}
 .textarea::-webkit-scrollbar{width:8px}
@@ -158,6 +161,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 
 /* TOGGLE */
 .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 11px}
+.toggle-row-stack{flex-direction:column;align-items:stretch;gap:8px;position:relative}
 .toggle-info{display:flex;flex-direction:column;gap:2px}
 .toggle-name{font-size:12.5px;font-weight:500;color:var(--text)}
 .toggle-desc{font-size:10.5px;color:var(--text3)}
@@ -566,7 +570,7 @@ body.mobile-portrait .input-bar {
                 </div>
               </div>
             </div>
-            <div class="field" id="provider-field" style="display: none;">
+            <div class="field field-hidden" id="provider-field">
               <label class="field-label" for="provider-name">提供商（可选）</label>
               <div class="model-input-wrapper">
                 <input class="input mono-input" id="provider-name" type="text" placeholder="留空使用默认路由" oninput="onProviderInput()" aria-label="提供商名称">
@@ -592,7 +596,7 @@ body.mobile-portrait .input-bar {
             <div class="field">
               <label class="field-label" for="api-format">API 格式</label>
               <div class="model-input-wrapper">
-                <input class="input" id="api-format" type="text" readonly onclick="toggleFormatDropdown(event)" aria-label="API 格式" style="cursor: pointer;">
+                <input class="input input-clickable" id="api-format" type="text" readonly onclick="toggleFormatDropdown(event)" aria-label="API 格式">
                 <button type="button" class="model-dropdown-btn" id="format-dropdown-btn" onclick="toggleFormatDropdown(event)" aria-label="选择格式">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
@@ -687,7 +691,7 @@ body.mobile-portrait .input-bar {
                 <span class="slider-val" id="top-a-val">0.000</span>
               </div>
             </div>
-            <div class="field" style="margin-top:12px">
+            <div class="field field-mt-12">
               <button class="reset-params-btn" onclick="resetGenerationParams()" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                 重置所有参数
@@ -722,23 +726,25 @@ body.mobile-portrait .input-bar {
               <div class="toggle-info"><div class="toggle-name">Enter 发送</div><div class="toggle-desc">开启：Enter 发送；关闭：Ctrl+Enter 发送</div></div>
               <div class="toggle on" id="enter-send-toggle" onclick="toggleOpt('enterSend')"></div>
             </div>
-            <div class="toggle-row" style="flex-direction:column;align-items:stretch;gap:8px;position:relative">
+            <div class="toggle-row toggle-row-stack">
               <button type="button" class="slider-reset-btn" onclick="resetFontSize()" title="重置字体大小">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
               </button>
               <div class="toggle-info"><div class="toggle-name">消息字体大小</div><div class="toggle-desc">调节对话消息的字体大小</div></div>
               <div class="slider-row">
-                <input type="range" class="slider" id="font-size-slider" min="12" max="24" step="1" value="14" oninput="updateFontSize(this.value)">
+                <label class="sr-only" for="font-size-slider">消息字体大小滑块</label>
+                <input type="range" class="slider" id="font-size-slider" min="12" max="24" step="1" value="14" oninput="updateFontSize(this.value)" aria-label="消息字体大小">
                 <span class="slider-val" id="font-size-val">14px</span>
               </div>
             </div>
-            <div class="toggle-row" style="flex-direction:column;align-items:stretch;gap:8px;position:relative">
+            <div class="toggle-row toggle-row-stack">
               <button type="button" class="slider-reset-btn" onclick="resetMessageWidth()" title="重置消息宽度">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
               </button>
               <div class="toggle-info"><div class="toggle-name">消息区域宽度</div><div class="toggle-desc">调节消息区域的最大宽度</div></div>
               <div class="slider-row">
-                <input type="range" class="slider" id="message-width-slider" min="600" max="1800" step="20" value="1080" oninput="updateMessageWidthPreview(this.value)" onchange="updateMessageWidthFinal(this.value)">
+                <label class="sr-only" for="message-width-slider">消息区域宽度滑块</label>
+                <input type="range" class="slider" id="message-width-slider" min="600" max="1800" step="20" value="1080" oninput="updateMessageWidthPreview(this.value)" onchange="updateMessageWidthFinal(this.value)" aria-label="消息区域宽度">
                 <span class="slider-val" id="message-width-val">1080px</span>
               </div>
             </div>
@@ -3331,9 +3337,11 @@ function createBubble(role, text, empty=false, messageId=null, branchNode=null, 
   row.innerHTML = `<div class="avatar ${role}">${isUser?'U':'AI'}</div>
     <div class="bubble">
       <div class="bubble-name ${isUser?'user-name':'ai-name'}">${escapeHtml(modelName)}</div>
-      <div class="bubble-content ${isUser?'user-msg':'ai-msg'}" style="font-size:${messageFontSize}px">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
+      <div class="bubble-content ${isUser?'user-msg':'ai-msg'}">${empty?'<span class="typing-cursor"></span>':(isUser?escapeHtml(text):renderMd(text))}</div>
       ${actions}
     </div>`;
+  const bubbleContent = row.querySelector('.bubble-content');
+  if (bubbleContent) bubbleContent.style.fontSize = messageFontSize + 'px';
   row.style.maxWidth = messageWidth + 'px';
   return row;
 }
