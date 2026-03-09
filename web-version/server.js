@@ -13,6 +13,17 @@ const PORT = process.env.PORT || 5638;
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
+// 原子写入 JSON，避免并发写入时读到半截文件
+async function writeJsonAtomic(filePath, data) {
+  const dir = path.dirname(filePath);
+  const tempPath = path.join(
+    dir,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`
+  );
+  await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
+  await fs.rename(tempPath, filePath);
+}
+
 // 确保数据目录存在
 async function ensureDataDir() {
   try {
@@ -40,7 +51,7 @@ async function getUsers() {
 
 // 保存所有用户
 async function saveUsers(users) {
-  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+  await writeJsonAtomic(USERS_FILE, users);
 }
 
 // 获取用户目录
@@ -229,7 +240,7 @@ app.post('/api/settings', requireAuth, async (req, res) => {
     const { data } = req.body;
     const settingsFile = path.join(getUserDir(req.session.username), 'settings.json');
 
-    await fs.writeFile(settingsFile, JSON.stringify(data, null, 2));
+    await writeJsonAtomic(settingsFile, data);
     res.json({ success: true });
   } catch (error) {
     console.error('保存设置错误:', error);
@@ -262,7 +273,7 @@ app.post('/api/active-conversation', requireAuth, async (req, res) => {
     const activeFile = path.join(userDir, 'active.json');
 
     await fs.mkdir(userDir, { recursive: true });
-    await fs.writeFile(activeFile, JSON.stringify(id ?? null, null, 2));
+    await writeJsonAtomic(activeFile, id ?? null);
     res.json({ success: true });
   } catch (error) {
     console.error('保存活动对话错误:', error);
@@ -284,12 +295,37 @@ app.post('/api/conversations', requireAuth, async (req, res) => {
     const convsDir = path.join(getUserDir(req.session.username), 'conversations');
     await fs.mkdir(convsDir, { recursive: true });
 
+    const files = await fs.readdir(convsDir);
+    const existingFile = files.find(f => f.endsWith(`_${conversation.id}.json`));
+
+    // 防止旧请求晚到覆盖新数据：仅允许 updatedAt 更新或相等的写入
+    if (existingFile) {
+      try {
+        const existingPath = path.join(convsDir, existingFile);
+        const existingRaw = await fs.readFile(existingPath, 'utf8');
+        const existingConv = JSON.parse(existingRaw);
+
+        const incomingUpdatedAt = Number(conversation.updatedAt || 0);
+        const existingUpdatedAt = Number(existingConv?.updatedAt || 0);
+
+        if (incomingUpdatedAt < existingUpdatedAt) {
+          return res.json({
+            success: true,
+            ignored: true,
+            reason: 'stale_conversation_write',
+            existingUpdatedAt
+          });
+        }
+      } catch (e) {
+        // 旧文件损坏时允许新数据覆盖修复
+      }
+    }
+
     const title = sanitizeConversationTitleForFilename(conversation.title);
     const filename = path.join(convsDir, `${title}_${conversation.id}.json`);
 
     // 删除该对话ID的所有旧文件（处理标题改变的情况）
     try {
-      const files = await fs.readdir(convsDir);
       const oldFiles = files.filter(f => f.endsWith(`_${conversation.id}.json`) && f !== `${title}_${conversation.id}.json`);
 
       for (const oldFile of oldFiles) {
@@ -299,7 +335,7 @@ app.post('/api/conversations', requireAuth, async (req, res) => {
       // 忽略删除旧文件的错误
     }
 
-    await fs.writeFile(filename, JSON.stringify(conversation, null, 2));
+    await writeJsonAtomic(filename, conversation);
     res.json({ success: true });
   } catch (error) {
     console.error('保存对话错误:', error);

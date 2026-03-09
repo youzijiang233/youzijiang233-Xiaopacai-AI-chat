@@ -427,6 +427,11 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
     position: relative;
   }
 
+  /* 防止列布局下 bubble 变成内容宽，导致气泡异常偏窄 */
+  .message-row .bubble {
+    width: 100%;
+  }
+
   /* 头像调整 */
   .message-row > .avatar {
     margin-top: 0;
@@ -453,6 +458,7 @@ kbd{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-
   /* 用户消息气泡右对齐 */
   .message-row.user-row .bubble-content.user-msg {
     max-width: calc(100% - 32px);
+    min-width: min(120px, calc(100% - 32px));
   }
 }
 

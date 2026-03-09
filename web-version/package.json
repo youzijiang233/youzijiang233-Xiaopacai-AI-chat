@@ -1,6 +1,6 @@
 {
   "name": "xiaopacai-ai-chat-server",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Xiaopacai AI Chat Server with User Authentication",
   "main": "server.js",
   "scripts": {

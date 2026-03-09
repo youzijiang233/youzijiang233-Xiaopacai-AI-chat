@@ -1,6 +1,6 @@
 {
   "name": "xiaopacai-ai-chat",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "AI Chat Application with Tree-Based Conversation Management",
   "main": "main.js",
   "scripts": {

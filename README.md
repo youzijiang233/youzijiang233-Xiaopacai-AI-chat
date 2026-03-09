@@ -2,7 +2,7 @@
 
 基于 Electron 开发的现代化 AI 聊天桌面应用，支持创新的树状对话分支管理。
 
-![Version](https://img.shields.io/badge/version-1.4.1-blue)
+![Version](https://img.shields.io/badge/version-1.4.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Electron](https://img.shields.io/badge/electron-latest-brightgreen)
 
@@ -205,6 +205,11 @@ xiaopacai-AI-chat/
 - [ ] 可选的云同步
 
 ## 📝 版本历史
+
+### v1.4.2 (2026-03-09)
+- 🚀 版本号升级到 1.4.2（桌面端与 Web 端统一）
+- 📱 修复 Web 端移动端用户消息气泡偶发宽度异常问题
+- 💾 修复 Web 端对话并发保存导致的末尾消息偶发丢失问题（新增防旧写覆盖与原子写入）
 
 ### v1.4.1 (2026-03-08)
 - 🚀 版本号升级到 1.4.1（桌面端与 Web 端统一）
